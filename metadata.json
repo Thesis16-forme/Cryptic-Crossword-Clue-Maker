@@ -1,0 +1,5 @@
+{
+  "name": "Cryptic Clue Craftsman",
+  "description": "An application that leverages AI to generate high-quality, Guardian-style cryptic crossword clues based on user-provided answers, definitions, and wordplay structures.",
+  "requestFramePermissions": []
+}
