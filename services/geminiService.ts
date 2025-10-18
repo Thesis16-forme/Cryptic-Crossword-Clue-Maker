@@ -54,7 +54,7 @@ const handleApiError = (error: unknown): Error => {
     if (message.includes("api key not valid") || message.includes("not found")) {
       return new Error("Invalid API Key. Please check your configuration.");
     }
-    if (message.includes("rate limit")) {
+    if (message.includes("rate limit") || message.includes("quota")) {
       return new Error("You've made too many requests. Please wait a moment and try again.");
     }
     if (message.includes("candidate was blocked")) {
