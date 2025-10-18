@@ -9,7 +9,8 @@ export type CrypticDevice =
   | 'Deletion'
   | 'Double Definition'
   | 'Cryptic Definition'
-  | '& Lit.';
+  | '& Lit.'
+  | 'Palindrome';
 
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
