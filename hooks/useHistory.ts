@@ -50,6 +50,15 @@ const exampleHistoryEntries: HistoryEntry[] = [
         timestamp: now - 4,
         setter: 'Bunthorne',
     },
+    {
+        id: now - 5,
+        clue: 'A telling-off on the water?',
+        answer: 'ROW',
+        definition: 'Quarrel or propel a boat',
+        clueType: ClueType.CRYPTIC_DEFINITION,
+        timestamp: now - 5,
+        setter: 'Rufus',
+    },
 ];
 
 export const useHistory = (): [HistoryEntry[], (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => void, () => void] => {

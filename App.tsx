@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ClueType, GeneratedClue } from './types';
-import { generateClue, getClueTypeExplanation, getSetterExplanation, getMetadata } from './services/geminiService';
+import { generateClue, getClueTypeExplanation, getSetterExplanation, getMetadata, getSynonyms } from './services/geminiService';
 import { useHistory } from './hooks/useHistory';
 import Header from './components/Header';
 import TextInput from './components/TextInput';
@@ -11,6 +11,7 @@ import Spinner from './components/Spinner';
 import HistoryDisplay from './components/HistoryDisplay';
 import { HistoryIcon } from './components/HistoryIcon';
 import ErrorDisplay from './components/ErrorDisplay';
+import SuggestionDisplay from './components/SuggestionDisplay';
 
 const MAX_ANSWER_LENGTH = 25;
 const MAX_DEFINITION_LENGTH = 80;
@@ -28,6 +29,12 @@ const App: React.FC = () => {
   const [history, addHistoryEntry, clearHistory] = useHistory();
   const [isHistoryVisible, setIsHistoryVisible] = useState<boolean>(false);
 
+  // State for synonym suggestions
+  const [synonymSuggestions, setSynonymSuggestions] = useState<string[]>([]);
+  const [isSynonymLoading, setIsSynonymLoading] = useState<boolean>(false);
+  const [suggestionTarget, setSuggestionTarget] = useState<'answer' | 'definition' | null>(null);
+
+
   useEffect(() => {
     const fetchSetters = async () => {
         try {
@@ -44,6 +51,49 @@ const App: React.FC = () => {
     };
     fetchSetters();
   }, []);
+
+  const handleSuggestSynonyms = useCallback(async (target: 'answer' | 'definition') => {
+    const textToSuggest = target === 'answer' ? answer : definition;
+    if (!textToSuggest.trim()) return;
+
+    // If suggestions for this target are already open, close them. Otherwise, open them.
+    if (suggestionTarget === target) {
+        setSuggestionTarget(null);
+        setSynonymSuggestions([]);
+        return;
+    }
+
+    setSuggestionTarget(target);
+    setIsSynonymLoading(true);
+    setSynonymSuggestions([]);
+    setError(null);
+
+    try {
+        const suggestions = await getSynonyms(textToSuggest);
+        setSynonymSuggestions(suggestions);
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred while fetching suggestions.');
+        setSuggestionTarget(null); // Close suggestion box on error
+    } finally {
+        setIsSynonymLoading(false);
+    }
+  }, [answer, definition, suggestionTarget]);
+
+  const handleSuggestionClick = (suggestion: string) => {
+    if (suggestionTarget === 'answer') {
+        setAnswer(suggestion);
+    } else if (suggestionTarget === 'definition') {
+        setDefinition(suggestion);
+    }
+    // Close the suggestion box
+    setSuggestionTarget(null);
+    setSynonymSuggestions([]);
+  };
+
+  const handleDismissSuggestions = () => {
+    setSuggestionTarget(null);
+    setSynonymSuggestions([]);
+  }
 
   const clueTypeOptions = Object.values(ClueType).map(value => ({
     value,
@@ -74,6 +124,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setGeneratedClue(null);
+    setSuggestionTarget(null); // Close any open suggestion boxes
 
     try {
       const clueObject = await generateClue(answer, definition, clueType, isToughie, setter);
@@ -98,24 +149,50 @@ const App: React.FC = () => {
         <Header />
         <main className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <TextInput
-              id="answer"
-              label="Answer"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              placeholder="e.g., PLANET"
-              required
-              maxLength={MAX_ANSWER_LENGTH}
-            />
-            <TextInput
-              id="definition"
-              label="Definition"
-              value={definition}
-              onChange={(e) => setDefinition(e.target.value)}
-              placeholder="e.g., Celestial body"
-              required
-              maxLength={MAX_DEFINITION_LENGTH}
-            />
+            <div>
+              <TextInput
+                id="answer"
+                label="Answer"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="e.g., PLANET"
+                required
+                maxLength={MAX_ANSWER_LENGTH}
+                onSuggestClick={() => handleSuggestSynonyms('answer')}
+                isSuggestLoading={isSynonymLoading && suggestionTarget === 'answer'}
+              />
+              {suggestionTarget === 'answer' && (
+                  <SuggestionDisplay
+                      isLoading={isSynonymLoading}
+                      suggestions={synonymSuggestions}
+                      onSuggestionClick={handleSuggestionClick}
+                      onDismiss={handleDismissSuggestions}
+                      targetLabel={answer}
+                  />
+              )}
+            </div>
+            <div>
+              <TextInput
+                id="definition"
+                label="Definition"
+                value={definition}
+                onChange={(e) => setDefinition(e.target.value)}
+                placeholder="e.g., Celestial body"
+                required
+                maxLength={MAX_DEFINITION_LENGTH}
+                onSuggestClick={() => handleSuggestSynonyms('definition')}
+                isSuggestLoading={isSynonymLoading && suggestionTarget === 'definition'}
+              />
+               {suggestionTarget === 'definition' && (
+                  <SuggestionDisplay
+                      isLoading={isSynonymLoading}
+                      suggestions={synonymSuggestions}
+                      onSuggestionClick={handleSuggestionClick}
+                      onDismiss={handleDismissSuggestions}
+                      targetLabel={definition}
+                  />
+              )}
+            </div>
             <SelectInput
               id="clueType"
               label="Clue Type"
@@ -131,6 +208,7 @@ const App: React.FC = () => {
               onChange={(e) => setSetter(e.target.value)}
               options={setterOptions}
               infoText={getSetterExplanation(setter)}
+              getOptionTitle={getSetterExplanation}
             />
              <div className="flex items-center justify-end pt-2">
                 <label htmlFor="toughie" className="mr-3 block text-sm font-medium text-gray-300">

@@ -11,6 +11,8 @@ export enum ClueType {
   LITERAL = 'LITERAL',
   COMPOSITE = 'COMPOSITE',
   SPOONERISM = 'SPOONERISM',
+  CRYPTIC_DEFINITION = 'CRYPTIC_DEFINITION',
+  INITIALISM = 'INITIALISM',
 }
 
 export interface GeneratedClue {

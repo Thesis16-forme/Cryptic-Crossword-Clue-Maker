@@ -45,6 +45,30 @@ export const getMetadata = (): Promise<AppMetadata> => {
     return metadataPromise;
 }
 
+const handleApiError = (error: unknown): Error => {
+  console.error("Gemini API Error:", error);
+
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes("api key not valid") || message.includes("not found")) {
+      return new Error("Invalid API Key. Please check your configuration.");
+    }
+    if (message.includes("rate limit")) {
+      return new Error("You've made too many requests. Please wait a moment and try again.");
+    }
+    if (message.includes("candidate was blocked")) {
+      return new Error("The request was blocked for safety reasons. Please modify your input and try again.");
+    }
+    if (message.includes("failed to fetch")) {
+        return new Error("Network error. Please check your internet connection and try again.");
+    }
+  }
+  
+  // Default fallback error for other unhandled cases
+  return new Error("An unexpected error occurred with the AI service. Please try again later.");
+};
+
 export const getSetterExplanation = (setter: string): string => {
   switch (setter) {
     case "Araucaria":
@@ -107,10 +131,62 @@ export const getClueTypeExplanation = (clueType: ClueType): string => {
         return "A composite clue. This clue combines two or more different wordplay types (like an anagram and a container) to arrive at the answer. This is often used for longer answers. The clue must clearly delineate the different wordplay steps. Example for HONORABLE: 'Illustrious baron returns in pit' -> NORAB (baron reversed) inside HOLE (pit).";
     case ClueType.SPOONERISM:
         return "A spoonerism. The initial sounds of two or more words are swapped. The clue defines both the resulting phrase (the answer) and the original words. It often includes an indicator like 'the Reverend says' (after Rev. William Spooner) or similar phrases suggesting a verbal mix-up. For example, for the answer BELTED MUTTER, the clue might point towards the phrase 'melted butter'.";
+    case ClueType.CRYPTIC_DEFINITION:
+        return "A cryptic definition. The entire clue is a witty, misleading, or punning definition of the answer. There is no separate wordplay part; the definition itself is the cryptic puzzle. Often ends with a question mark. For example, for the answer ROW: 'A telling-off on the water?'";
+    case ClueType.INITIALISM:
+        return "An initialism (or acrostic). The answer is formed by taking the first letters of words in the clue. It requires an indicator such as 'at first', 'initially', 'starts to', or 'in the beginning'. For example, for the answer GEAR: 'Starts to get every answer right'.";
     default:
       return "A standard cryptic clue.";
   }
 };
+
+export const getSynonyms = async (text: string): Promise<string[]> => {
+    if (!text || text.trim().length === 0) {
+        return [];
+    }
+    
+    const prompt = `
+        You are a thesaurus expert. Your task is to provide a list of synonyms for a given word or phrase.
+        
+        **Instructions:**
+        1. Analyze the following text: "${text}"
+        2. Generate a list of up to 10 relevant synonyms.
+        3. The synonyms should be single words or short phrases.
+        4. Your response MUST be ONLY a valid JSON array of strings. For example: ["synonym1", "synonym2", "synonym3"].
+        5. If you cannot find any synonyms, return an empty JSON array: [].
+        6. Do not include the original word in the list.
+        7. Do not add any preamble, explanation, or markdown backticks.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+
+        let responseText = response.text.trim();
+        const jsonRegex = /```(json)?\s*([\s\S]*?)\s*```/;
+        const match = responseText.match(jsonRegex);
+        if (match && match[2]) {
+            responseText = match[2].trim();
+        }
+
+        try {
+            const parsedResponse: string[] = JSON.parse(responseText);
+            if (!Array.isArray(parsedResponse)) {
+                console.error("AI response for synonyms was not an array:", parsedResponse);
+                return [];
+            }
+            return parsedResponse;
+        } catch (e) {
+            console.error("Failed to parse synonyms response as JSON:", responseText);
+            return [];
+        }
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
 
 export const generateClue = async (
     answer: string,
@@ -130,20 +206,20 @@ export const generateClue = async (
 
     **Style and Persona:**
     Adopt the persona of the famous cryptic crossword setter: **${setter}**. Emulate this setter's specific style by following these guidelines:
-    - **Araucaria:** Playful, witty, often with clever, highly misleading surface readings and elaborate themes.
-    - **Ximenes:** The epitome of precision. Strictly fair, grammatically perfect wordplay with no ambiguity.
-    - **Azed:** A follower of the Ximenean tradition, but known for using obscure words and being very challenging.
-    - **Bunthorne:** A classic setter, often witty and elegant in clue construction.
-    - **Pasquale:** A linguist, his clues are precise and often feature clever wordplay, sometimes with a slightly academic feel.
-    - **Rufus:** Known for a light touch, heavy use of cryptic definitions and double definitions, making his puzzles accessible.
-    - **Enigmatist:** As the name suggests, highly complex, multi-layered wordplay that is very challenging and intricate.
-    - **Torquemada:** Historically notorious for being exceptionally obscure and difficult.
-    - **Everyman:** Beginner-friendly. Clues are clear, fair, and an excellent introduction to cryptics.
-    - **Cinephile:** Often includes themes related to film and cinema. Playful and entertaining.
-    - **Gordius:** Frequently incorporates political or satirical commentary into his clues.
-    - **Paul:** Famous for witty, humorous, and often cheeky or risqué clues.
-    - **Shed:** Witty, playful, and inventive, in a similar vein to Paul.
-    - **Boatman:** Often builds puzzles around a central theme (e.g., sailing), where surface readings cleverly relate to it.
+    - **Araucaria:** Playful, witty, often with clever, highly misleading surface readings and elaborate themes. **Avoid:** Making clues unsolvable without guessing the theme; individual clues must be fair on their own.
+    - **Ximenes:** The epitome of precision. Strictly fair, grammatically perfect wordplay with no ambiguity. **Avoid:** Any indirect wordplay, definitions that are merely associative, or ambiguity. Every part of the clue must be precise.
+    - **Azed:** A follower of the Ximenean tradition, but known for using obscure words and being very challenging. **Avoid:** Using words that are not in a comprehensive dictionary (like Chambers). The wordplay must remain strictly fair despite the difficult vocabulary.
+    - **Bunthorne:** A classic setter, often witty and elegant in clue construction. **Avoid:** Clumsy or convoluted surface readings; the wit should feel natural, not forced.
+    - **Pasquale:** A linguist, his clues are precise and often feature clever wordplay, sometimes with a slightly academic feel. **Avoid:** Overly dry clues; precision should not sacrifice the 'aha!' moment.
+    - **Rufus:** Known for a light touch, heavy use of cryptic definitions and double definitions, making his puzzles accessible. **Avoid:** Cryptic definitions that are too straightforward. There must still be a misleading element.
+    - **Enigmatist:** As the name suggests, highly complex, multi-layered wordplay that is very challenging and intricate. **Avoid:** Making clues so complex they become an unfair chore to solve. Each layer of wordplay must be logically sound.
+    - **Torquemada:** Historically notorious for being exceptionally obscure and difficult. **Avoid:** Being completely unparsable by modern standards. Clues should not require impossible-to-find external knowledge.
+    - **Everyman:** Beginner-friendly. Clues are clear, fair, and an excellent introduction to cryptics. **Avoid:** Overly simplistic or non-cryptic clues. Wordplay indicators should be clear but still present a challenge.
+    - **Cinephile:** Often includes themes related to film and cinema. Playful and entertaining. **Avoid:** Using references to very obscure films or major spoilers. The clue must be solvable even if the solver doesn't know the specific film.
+    - **Gordius:** Frequently incorporates political or satirical commentary into his clues. **Avoid:** Letting commentary overshadow the wordplay or using references that will date too quickly. The clue must be solvable regardless of political views.
+    - **Paul:** Famous for witty, humorous, and often cheeky or risqué clues. **Avoid:** Being crude rather than witty. Avoid obscure slang. The humour should come from clever misdirection.
+    - **Shed:** Witty, playful, and inventive, in a similar vein to Paul. **Avoid:** Breaking fundamental cryptic rules for the sake of an inventive idea. Ensure the surface reading is coherent.
+    - **Boatman:** Often builds puzzles around a central theme (e.g., sailing), where surface readings cleverly relate to it. **Avoid:** Using jargon so specific that only a subject expert could solve it. Clues must be solvable independently of the theme.
     You MUST emulate the chosen setter's style in your response.
 
     **Clue Complexity:**
@@ -173,7 +249,7 @@ export const generateClue = async (
 
   try {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.push-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
     });
     
@@ -205,7 +281,6 @@ export const generateClue = async (
     }
 
   } catch (error) {
-    console.error("Error generating clue with Gemini API:", error);
-    throw new Error("Failed to generate clue. The AI service may be unavailable or the request was blocked.");
+    throw handleApiError(error);
   }
 };

@@ -6,9 +6,10 @@ interface SelectInputProps extends React.SelectHTMLAttributes<HTMLSelectElement>
   id: string;
   options: { value: string; label: string }[];
   infoText?: string;
+  getOptionTitle?: (value: string) => string;
 }
 
-const SelectInput: React.FC<SelectInputProps> = ({ label, id, options, infoText, ...props }) => {
+const SelectInput: React.FC<SelectInputProps> = ({ label, id, options, infoText, getOptionTitle, ...props }) => {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -39,7 +40,7 @@ const SelectInput: React.FC<SelectInputProps> = ({ label, id, options, infoText,
         {...props}
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} title={getOptionTitle ? getOptionTitle(option.value) : undefined}>
             {option.label}
           </option>
         ))}
