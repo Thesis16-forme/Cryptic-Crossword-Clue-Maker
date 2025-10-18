@@ -10,6 +10,7 @@ export enum ClueType {
   HIDDEN_WORD = 'HIDDEN_WORD',
   LITERAL = 'LITERAL',
   COMPOSITE = 'COMPOSITE',
+  SPOONERISM = 'SPOONERISM',
 }
 
 export interface GeneratedClue {

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { ClueType, GeneratedClue } from './types';
 import { generateClue, getClueTypeExplanation } from './services/geminiService';
@@ -37,6 +38,15 @@ const App: React.FC = () => {
       setError('Please provide both an answer and a definition.');
       return;
     }
+    if (answer.length > MAX_ANSWER_LENGTH) {
+        setError(`The answer cannot be longer than ${MAX_ANSWER_LENGTH} characters.`);
+        return;
+    }
+    if (definition.length > MAX_DEFINITION_LENGTH) {
+        setError(`The definition cannot be longer than ${MAX_DEFINITION_LENGTH} characters.`);
+        return;
+    }
+
     setIsLoading(true);
     setError(null);
     setGeneratedClue(null);

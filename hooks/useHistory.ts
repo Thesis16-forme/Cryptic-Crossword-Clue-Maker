@@ -41,6 +41,15 @@ const exampleHistoryEntries: HistoryEntry[] = [
         timestamp: now - 3,
         setter: 'Pasquale',
     },
+    {
+        id: now - 4,
+        clue: "Reverend's melted butter becomes a quiet complaint that's been struck",
+        answer: 'BELTED MUTTER',
+        definition: 'Struck quiet complaint',
+        clueType: ClueType.SPOONERISM,
+        timestamp: now - 4,
+        setter: 'Bunthorne',
+    },
 ];
 
 export const useHistory = (): [HistoryEntry[], (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => void, () => void] => {

@@ -1,12 +1,50 @@
 import { GoogleGenAI } from "@google/genai";
 import { ClueType, GeneratedClue } from '../types';
-import metadata from '../metadata.json';
 
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable not set");
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+interface AppMetadata {
+  setters: string[];
+}
+
+// Use a promise to load metadata once and cache it.
+let metadataPromise: Promise<AppMetadata> | null = null;
+
+const loadMetadata = async (): Promise<AppMetadata> => {
+  try {
+    const response = await fetch('/metadata.json');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (!data.setters || !Array.isArray(data.setters)) {
+        throw new Error("Metadata is missing 'setters' array.");
+    }
+    return data;
+  } catch (error) {
+    console.error("Could not load or parse metadata.json, using fallback setters.", error);
+    // Fallback data in case of error
+    return {
+      setters: [
+        "Araucaria", "Azed", "Boatman", "Bunthorne", "Cinephile",
+        "Enigmatist", "Everyman", "Gordius", "Pasquale", "Paul",
+        "Rufus", "Shed", "Torquemada", "Ximenes"
+      ]
+    };
+  }
+};
+
+const getMetadata = (): Promise<AppMetadata> => {
+    if (!metadataPromise) {
+        metadataPromise = loadMetadata();
+    }
+    return metadataPromise;
+}
+
 
 // FIX: Export the function to make it available for import in other files.
 export const getClueTypeExplanation = (clueType: ClueType): string => {
@@ -33,6 +71,8 @@ export const getClueTypeExplanation = (clueType: ClueType): string => {
         return "A literal or '&lit.' clue. The entire clue is a single entity that works as both a definition for the answer and the wordplay to construct it. The whole clue must literally describe the answer. Example for EGG: 'E.g., origin of goose!' where 'e.g.' gives EG and 'origin of goose' gives G, and the whole clue defines an egg.";
     case ClueType.COMPOSITE:
         return "A composite clue. This clue combines two or more different wordplay types (like an anagram and a container) to arrive at the answer. This is often used for longer answers. The clue must clearly delineate the different wordplay steps. Example for HONORABLE: 'Illustrious baron returns in pit' -> NORAB (baron reversed) inside HOLE (pit).";
+    case ClueType.SPOONERISM:
+        return "A spoonerism. The initial sounds of two or more words are swapped. The clue defines both the resulting phrase (the answer) and the original words. It often includes an indicator like 'the Reverend says' (after Rev. William Spooner) or similar phrases suggesting a verbal mix-up. For example, for the answer BELTED MUTTER, the clue might point towards the phrase 'melted butter'.";
     default:
       return "A standard cryptic clue.";
   }
@@ -44,6 +84,7 @@ export const generateClue = async (
     clueType: ClueType,
     isToughie: boolean
 ): Promise<GeneratedClue> => {
+  const metadata = await getMetadata();
   const setters = metadata.setters;
   const randomSetter = setters[Math.floor(Math.random() * setters.length)];
 
@@ -57,11 +98,21 @@ export const generateClue = async (
     You are an expert cryptic crossword setter. Your task is to generate one concise, elegant, and witty cryptic crossword clue.
 
     **Style and Persona:**
-    Adopt the persona of the famous cryptic crossword setter: **${randomSetter}**. Emulate this setter's specific style.
-    - **Araucaria Style:** Playful, witty, often with clever surface readings that are highly misleading.
-    - **Ximenes Style:** Strictly precise, grammatically perfect, and scrupulously fair wordplay.
-    - **Torquemada Style:** Notoriously obscure and difficult.
-    - **Rufus Style:** Often uses cryptic definitions and double definitions, with a light touch.
+    Adopt the persona of the famous cryptic crossword setter: **${randomSetter}**. Emulate this setter's specific style by following these guidelines:
+    - **Araucaria:** Playful, witty, often with clever, highly misleading surface readings and elaborate themes.
+    - **Ximenes:** The epitome of precision. Strictly fair, grammatically perfect wordplay with no ambiguity.
+    - **Azed:** A follower of the Ximenean tradition, but known for using obscure words and being very challenging.
+    - **Bunthorne:** A classic setter, often witty and elegant in clue construction.
+    - **Pasquale:** A linguist, his clues are precise and often feature clever wordplay, sometimes with a slightly academic feel.
+    - **Rufus:** Known for a light touch, heavy use of cryptic definitions and double definitions, making his puzzles accessible.
+    - **Enigmatist:** As the name suggests, highly complex, multi-layered wordplay that is very challenging and intricate.
+    - **Torquemada:** Historically notorious for being exceptionally obscure and difficult.
+    - **Everyman:** Beginner-friendly. Clues are clear, fair, and an excellent introduction to cryptics.
+    - **Cinephile:** Often includes themes related to film and cinema. Playful and entertaining.
+    - **Gordius:** Frequently incorporates political or satirical commentary into his clues.
+    - **Paul:** Famous for witty, humorous, and often cheeky or risqué clues.
+    - **Shed:** Witty, playful, and inventive, in a similar vein to Paul.
+    - **Boatman:** Often builds puzzles around a central theme (e.g., sailing), where surface readings cleverly relate to it.
     You MUST emulate the chosen setter's style in your response.
 
     **Clue Complexity:**
@@ -91,13 +142,20 @@ export const generateClue = async (
 
   try {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.push-flash',
         contents: prompt,
     });
     
-    const text = response.text.trim();
+    let text = response.text.trim();
     if (!text) {
         throw new Error("The AI returned an empty response. Please try a different input.");
+    }
+
+    // The model sometimes wraps the JSON in markdown backticks. Let's remove them.
+    const jsonRegex = /```(json)?\s*([\s\S]*?)\s*```/;
+    const match = text.match(jsonRegex);
+    if (match && match[2]) {
+        text = match[2].trim();
     }
 
     try {
