@@ -178,6 +178,14 @@ export const getClueTypeExplanation = (clueType: ClueType): string => {
         return "A sound change. The answer is formed by changing a letter or sound within a word to another. The clue will define the original word and indicate the change, e.g., 'change X to Y'. For example, for WANE, the clue might define WINE and instruct 'change the sound of I to A'.";
     case ClueType.REBUS:
         return "A 'meta' clue where the answer itself is a piece of wordplay. The clue has a definition for the answer, plus wordplay that describes the *result* of the answer's instructions. For example, for the answer BROKEN HEART (a term for 'despair'), the clue's wordplay might be 'Earth', because 'heart' when 'broken' (anagrammed) becomes 'earth'.";
+    case ClueType.BACKSOLVER:
+        return "A backsolver (or indirect) clue. The answer is often an obscure word or proper noun that is difficult to solve directly. The clue provides a cryptic hint, and the solver is expected to use the letters from intersecting clues ('checking letters') to determine the final answer. This type is rare and considered unfair by some purists.";
+    case ClueType.ANTHROPOPHAGISM:
+        return "A very rare 'man-eats-word' clue. This is a specific type of container where a word for a person (e.g., 'MAN', 'SON', 'HE') 'eats' (contains) another word to form the answer. The indicator is often related to cannibalism. For example, to get 'REHEARSAL', the clue might have 'HE' eating 'REARS' (backs).";
+    case ClueType.LETTER_BANK:
+        return "A letter bank. The clue contains a word or phrase from which all the letters of the answer can be taken, but not necessarily in order or contiguously (unlike a hidden word or anagram). It requires an indicator like 'letters from', 'using characters in', etc. For example, for ANSWER from 'WAREHOUSEMAN', the clue would indicate to pick letters from the longer word.";
+    case ClueType.LETTER_PAIR:
+        return "A letter pair clue. The answer is formed by taking pairs of letters from words in the clue. Indicators might specify 'first couple', 'final pair', 'central duo', etc. For example, for CART, the clue might define 'CARthorse' and use an indicator like 'opening couple'.";
     default:
       return "A standard cryptic clue.";
   }
