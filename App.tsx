@@ -20,7 +20,7 @@ const MAX_THEME_LENGTH = 50;
 const App: React.FC = () => {
   const [answer, setAnswer] = useState<string>('');
   const [definition, setDefinition] = useState<string>('');
-  const [clueType, setClueType] = useState<ClueType>(ClueType.ANAGRAM);
+  const [clueType, setClueType] = useState<ClueType>(ClueType.ANY);
   const [setters, setSetters] = useState<string[]>([]);
   const [setter, setSetter] = useState<string>('');
   const [theme, setTheme] = useState<string>('None');
@@ -148,15 +148,22 @@ const App: React.FC = () => {
     setSuggestionTarget(null); // Close any open suggestion boxes
 
     const finalTheme = theme === 'Custom' ? customTheme : theme;
+    
+    let finalClueType = clueType;
+    if (clueType === ClueType.ANY) {
+      const allClueTypes = Object.values(ClueType).filter(ct => ct !== ClueType.ANY);
+      finalClueType = allClueTypes[Math.floor(Math.random() * allClueTypes.length)];
+    }
+
 
     try {
-      const clueObject = await generateClue(answer, definition, clueType, isToughie, setter, finalTheme);
+      const clueObject = await generateClue(answer, definition, finalClueType, isToughie, setter, finalTheme);
       setGeneratedClue(clueObject);
       addHistoryEntry({
         clue: clueObject.clue,
         answer,
         definition,
-        clueType,
+        clueType: finalClueType,
         setter: clueObject.setter,
         theme: finalTheme.toLowerCase() !== 'none' ? finalTheme : undefined,
       });

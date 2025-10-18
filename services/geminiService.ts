@@ -130,9 +130,10 @@ export const getSetterExplanation = (setter: string): string => {
   }
 };
 
-// FIX: Export the function to make it available for import in other files.
 export const getClueTypeExplanation = (clueType: ClueType): string => {
   switch (clueType) {
+    case ClueType.ANY:
+      return "Let the AI choose! Selects a random, suitable clue type for your answer and definition.";
     case ClueType.ANAGRAM:
       return "An anagram. The clue must contain a jumbled version of the answer letters (fodder) and an anagram indicator. Common indicators are words suggesting change or chaos: 'jumbled', 'confused', 'damaged', 'novel', 'wild', 'shredded', 'mixed-up', 'out', 'off', 'crazy'.";
     case ClueType.CHARADE:

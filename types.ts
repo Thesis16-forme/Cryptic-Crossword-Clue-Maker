@@ -1,4 +1,5 @@
 export enum ClueType {
+  ANY = 'ANY',
   ANAGRAM = 'ANAGRAM',
   CHARADE = 'CHARADE',
   CONTAINER = 'CONTAINER',
