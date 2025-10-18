@@ -1,10 +1,12 @@
 import React from 'react';
 import { type Clue } from '../types';
+import { BookmarkIcon } from './icons/BookmarkIcon';
 
 interface ClueCardProps {
   clue: Clue;
   index: number;
   onGetVariations: () => void;
+  onSave: () => void;
 }
 
 const VariationCard: React.FC<{clue: Clue, index: number}> = ({ clue, index }) => {
@@ -20,7 +22,7 @@ const VariationCard: React.FC<{clue: Clue, index: number}> = ({ clue, index }) =
   )
 }
 
-export const ClueCard: React.FC<ClueCardProps> = ({ clue, index, onGetVariations }) => {
+export const ClueCard: React.FC<ClueCardProps> = ({ clue, index, onGetVariations, onSave }) => {
   return (
     <div className="bg-white p-5 rounded-lg shadow-md border border-stone-200 transition-shadow hover:shadow-lg">
       <div className="flex items-start space-x-4">
@@ -46,7 +48,20 @@ export const ClueCard: React.FC<ClueCardProps> = ({ clue, index, onGetVariations
         </div>
       )}
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex justify-end items-center gap-2">
+        <button
+          onClick={onSave}
+          disabled={clue.isSaved}
+          className="flex items-center gap-1.5 px-4 py-1 text-xs text-white bg-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200 disabled:bg-stone-400 disabled:cursor-not-allowed"
+          aria-label={clue.isSaved ? 'Clue is saved' : 'Save this clue'}
+        >
+          {clue.isSaved ? (
+            <BookmarkIcon className="w-3.5 h-3.5" fill="currentColor" />
+          ) : (
+            <BookmarkIcon className="w-3.5 h-3.5" />
+          )}
+          <span>{clue.isSaved ? 'Saved' : 'Save Clue'}</span>
+        </button>
         <button
           onClick={onGetVariations}
           disabled={clue.isLoadingVariations}

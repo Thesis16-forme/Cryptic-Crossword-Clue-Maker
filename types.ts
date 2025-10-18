@@ -14,12 +14,15 @@ export type CrypticDevice =
 
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
+export type Persona = 'Guardian Master Setter' | 'Witty Punster' | 'Concise Ximenean';
+
 export interface FormData {
   answer: string;
   definition: string;
   wordplayBreakdown: string;
   crypticDevice: CrypticDevice;
   difficulty: Difficulty;
+  persona: Persona;
 }
 
 export interface Clue {
@@ -27,4 +30,11 @@ export interface Clue {
   explanation: string;
   variations?: Clue[];
   isLoadingVariations?: boolean;
+  isSaved?: boolean;
+}
+
+export interface SavedClue {
+  id: string;
+  clue: string;
+  explanation: string;
 }

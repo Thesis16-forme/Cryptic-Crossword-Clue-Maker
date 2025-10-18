@@ -1,5 +1,5 @@
 import React from 'react';
-import { type FormData, type CrypticDevice, type Difficulty } from '../types';
+import { type FormData, type CrypticDevice, type Difficulty, type Persona } from '../types';
 import { SearchIcon } from './icons/SearchIcon';
 
 interface InputFormProps {
@@ -30,6 +30,8 @@ const crypticDevices: CrypticDevice[] = [
 ];
 
 const difficultyLevels: Difficulty[] = ['Easy', 'Medium', 'Hard'];
+
+const personaTypes: Persona[] = ['Guardian Master Setter', 'Witty Punster', 'Concise Ximenean'];
 
 const InputField: React.FC<{label: string, id: string, children: React.ReactNode}> = ({label, id, children}) => (
     <div>
@@ -134,7 +136,7 @@ export const InputForm: React.FC<InputFormProps> = ({
         />
       </InputField>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <InputField label="Cryptic Device" id="crypticDevice">
             <select
                 id="crypticDevice"
@@ -158,6 +160,19 @@ export const InputForm: React.FC<InputFormProps> = ({
             >
             {difficultyLevels.map(level => (
                 <option key={level} value={level}>{level}</option>
+            ))}
+            </select>
+        </InputField>
+        <InputField label="AI Persona" id="persona">
+            <select
+                id="persona"
+                name="persona"
+                value={formData.persona}
+                onChange={onChange}
+                className="w-full px-3 py-2 border border-stone-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-150 ease-in-out"
+            >
+            {personaTypes.map(persona => (
+                <option key={persona} value={persona}>{persona}</option>
             ))}
             </select>
         </InputField>

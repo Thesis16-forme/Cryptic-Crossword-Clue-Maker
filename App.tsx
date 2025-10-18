@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { InputForm } from './components/InputForm';
 import { ClueCard } from './components/ClueCard';
 import { Loader } from './components/Loader';
-import { type FormData, type Clue } from './types';
+import { type FormData, type Clue, type SavedClue } from './types';
 import { generateCrosswordClues, findDefinitions, generateClueVariations } from './services/geminiService';
 import { AboutModal } from './components/AboutModal';
+import { SavedCluesModal } from './components/SavedCluesModal';
+import { ErrorDisplay } from './components/ErrorDisplay';
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
@@ -14,12 +16,16 @@ const App: React.FC = () => {
     wordplayBreakdown: '',
     crypticDevice: 'Any',
     difficulty: 'Medium',
+    persona: 'Guardian Master Setter',
   });
   const [clues, setClues] = useState<Clue[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFindingDefinition, setIsFindingDefinition] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<{ name: 'submit' | 'definition' | 'variations'; payload?: any } | null>(null);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState<boolean>(false);
+  const [isSavedCluesModalOpen, setIsSavedCluesModalOpen] = useState<boolean>(false);
+  const [savedClues, setSavedClues] = useState<SavedClue[]>([]);
   const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [saveMessage, setSaveMessage] = useState<string>('');
 
@@ -29,8 +35,12 @@ const App: React.FC = () => {
       if (savedData) {
         setFormData(JSON.parse(savedData));
       }
+      const savedCluesData = localStorage.getItem('crypticSavedClues');
+      if (savedCluesData) {
+        setSavedClues(JSON.parse(savedCluesData));
+      }
     } catch (e) {
-      console.error("Failed to parse saved form data from localStorage", e);
+      console.error("Failed to parse saved data from localStorage", e);
     }
   }, []);
 
@@ -68,24 +78,36 @@ const App: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performSubmit = useCallback(async () => {
     if (isLoading) return;
     if (!validateForm()) return;
     
     setIsLoading(true);
     setError(null);
+    setLastAction(null);
     setClues([]);
 
     try {
       const generatedClues = await generateCrosswordClues(formData);
-      setClues(generatedClues);
+      const savedClueTexts = new Set(savedClues.map(c => c.clue));
+      const cluesWithSavedStatus = generatedClues.map(clue => ({
+        ...clue,
+        isSaved: savedClueTexts.has(clue.clue),
+      }));
+      setClues(cluesWithSavedStatus);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      setError(errorMessage);
+      setLastAction({ name: 'submit' });
       console.error(err);
     } finally {
       setIsLoading(false);
     }
+  }, [formData, isLoading, savedClues]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    performSubmit();
   };
   
   const clearForm = () => {
@@ -95,9 +117,11 @@ const App: React.FC = () => {
       wordplayBreakdown: '',
       crypticDevice: 'Any',
       difficulty: 'Medium',
+      persona: 'Guardian Master Setter',
     });
     setClues([]);
     setError(null);
+    setLastAction(null);
     setValidationErrors({});
     localStorage.removeItem('crypticClueFormData');
   };
@@ -109,13 +133,15 @@ const App: React.FC = () => {
       wordplayBreakdown: '(NAGS TATE)*',
       crypticDevice: 'Anagram',
       difficulty: 'Medium',
+      persona: 'Guardian Master Setter',
     });
     setClues([]);
     setError(null);
+    setLastAction(null);
     setValidationErrors({});
   };
 
-  const handleFindDefinition = async () => {
+  const performFindDefinition = useCallback(async () => {
     if (!formData.answer.trim()) {
       setValidationErrors({ answer: 'Please provide an answer word to find its definition.' });
       return;
@@ -123,39 +149,104 @@ const App: React.FC = () => {
 
     setIsFindingDefinition(true);
     setError(null);
+    setLastAction(null);
     setValidationErrors({});
 
     try {
         const definition = await findDefinitions(formData.answer);
         setFormData(prev => ({ ...prev, definition }));
     } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred while finding the definition.');
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while finding the definition.';
+        setError(errorMessage);
+        setLastAction({ name: 'definition' });
         console.error(err);
     } finally {
         setIsFindingDefinition(false);
     }
-  };
+  }, [formData.answer]);
 
-  const handleGetVariations = async (clueIndex: number) => {
+  const performGetVariations = useCallback(async (clueIndex: number) => {
     const originalClue = clues[clueIndex];
     if (!originalClue || originalClue.isLoadingVariations) return;
 
     setClues(prevClues => prevClues.map((c, i) => i === clueIndex ? { ...c, isLoadingVariations: true } : c));
     setError(null);
+    setLastAction(null);
 
     try {
       const variations = await generateClueVariations(originalClue, formData);
       setClues(prevClues => prevClues.map((c, i) => i === clueIndex ? { ...c, variations, isLoadingVariations: false } : c));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred while getting variations.');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while getting variations.';
+      setError(errorMessage);
+      setLastAction({ name: 'variations', payload: clueIndex });
       console.error(err);
       setClues(prevClues => prevClues.map((c, i) => i === clueIndex ? { ...c, isLoadingVariations: false } : c));
     }
+  }, [clues, formData]);
+
+  const handleSaveClue = (clueToSave: Clue) => {
+    if (savedClues.some(c => c.clue === clueToSave.clue)) return;
+
+    const newSavedClue: SavedClue = {
+      id: `clue-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      clue: clueToSave.clue,
+      explanation: clueToSave.explanation,
+    };
+
+    const updatedSavedClues = [...savedClues, newSavedClue];
+    setSavedClues(updatedSavedClues);
+    localStorage.setItem('crypticSavedClues', JSON.stringify(updatedSavedClues));
+
+    setClues(prevClues => prevClues.map(c => 
+      c.clue === clueToSave.clue ? { ...c, isSaved: true } : c
+    ));
+  };
+
+  const handleDeleteClue = (clueId: string) => {
+    const clueToDelete = savedClues.find(c => c.id === clueId);
+    if (!clueToDelete) return;
+
+    const updatedSavedClues = savedClues.filter(c => c.id !== clueId);
+    setSavedClues(updatedSavedClues);
+    localStorage.setItem('crypticSavedClues', JSON.stringify(updatedSavedClues));
+
+    setClues(prevClues => prevClues.map(c =>
+      c.clue === clueToDelete.clue ? { ...c, isSaved: false } : c
+    ));
+  };
+  
+  const handleRetry = () => {
+    if (lastAction) {
+        const actionToRetry = lastAction;
+        setError(null);
+        setLastAction(null);
+        
+        switch(actionToRetry.name) {
+            case 'submit':
+                performSubmit();
+                break;
+            case 'definition':
+                performFindDefinition();
+                break;
+            case 'variations':
+                performGetVariations(actionToRetry.payload);
+                break;
+        }
+    }
+  };
+
+  const handleClearError = () => {
+    setError(null);
+    setLastAction(null);
   };
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
-      <Header onAboutClick={() => setIsAboutModalOpen(true)} />
+      <Header 
+        onAboutClick={() => setIsAboutModalOpen(true)}
+        onSavedCluesClick={() => setIsSavedCluesModalOpen(true)}
+      />
       <main className="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
         <p className="mb-8 text-center text-stone-600 font-serif italic text-lg">
           Crafting clues with the wit of Araucaria and the cunning of Enigmatist.
@@ -169,7 +260,7 @@ const App: React.FC = () => {
           onClear={clearForm}
           onExample={loadExample}
           isFindingDefinition={isFindingDefinition}
-          onFindDefinition={handleFindDefinition}
+          onFindDefinition={performFindDefinition}
           errors={validationErrors}
           saveMessage={saveMessage}
         />
@@ -177,10 +268,11 @@ const App: React.FC = () => {
         {isLoading && <Loader />}
 
         {error && (
-          <div className="mt-8 rounded-lg border border-red-300 bg-red-50 p-4 text-center text-red-700">
-            <p className="font-bold">An Error Occurred</p>
-            <p>{error}</p>
-          </div>
+          <ErrorDisplay
+            message={error}
+            onRetry={lastAction ? handleRetry : undefined}
+            onClear={handleClearError}
+          />
         )}
 
         {clues.length > 0 && (
@@ -192,7 +284,8 @@ const App: React.FC = () => {
                   key={index} 
                   clue={clue} 
                   index={index + 1}
-                  onGetVariations={() => handleGetVariations(index)} 
+                  onGetVariations={() => performGetVariations(index)}
+                  onSave={() => handleSaveClue(clue)}
                 />
               ))}
             </div>
@@ -203,6 +296,12 @@ const App: React.FC = () => {
         <p>Cryptic Clue Craftsman &copy; {new Date().getFullYear()}</p>
       </footer>
       <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
+      <SavedCluesModal
+        isOpen={isSavedCluesModalOpen}
+        onClose={() => setIsSavedCluesModalOpen(false)}
+        clues={savedClues}
+        onDelete={handleDeleteClue}
+      />
     </div>
   );
 };
