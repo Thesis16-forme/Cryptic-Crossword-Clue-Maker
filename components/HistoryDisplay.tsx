@@ -25,7 +25,7 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
         <h2 className="text-lg font-semibold text-indigo-300">Clue History</h2>
         <button
           onClick={onClear}
-          className="flex items-center space-x-2 text-sm text-red-400 hover:text-red-300 transition-colors bg-red-900/50 hover:bg-red-900/80 px-3 py-1 rounded-md"
+          className="flex items-center space-x-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 transform hover:scale-105 bg-red-900/50 hover:bg-red-900/80 px-3 py-1 rounded-md"
           aria-label="Clear history"
         >
           <TrashIcon />
@@ -34,18 +34,27 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
       </div>
       
       <div className="max-h-96 overflow-y-auto space-y-4 pr-2 -mr-4 custom-scrollbar">
-        {history.map((entry) => (
-          <div key={entry.id} className="bg-gray-700/50 p-4 rounded-lg border border-gray-600 animate-fade-in">
+        {history.map((entry, index) => (
+          <div 
+            key={entry.id} 
+            className="bg-gray-700/50 p-4 rounded-lg border border-gray-600 animate-fade-in"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
             <p className="text-lg text-gray-200 font-mono">
               {entry.clue} <span className="text-gray-400">({entry.answer.length})</span>
             </p>
             {entry.setter && (
               <p className="text-xs text-indigo-300 italic mt-1">Style: {entry.setter}</p>
             )}
-            <div className="mt-3 pt-3 border-t border-gray-600 text-sm text-gray-400 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-              <p><span className="font-semibold text-gray-300">Answer:</span> {entry.answer.toUpperCase()}</p>
-              <p><span className="font-semibold text-gray-300">Type:</span> {formatClueType(entry.clueType)}</p>
-              <p className="sm:col-span-2"><span className="font-semibold text-gray-300">Definition:</span> {entry.definition}</p>
+            <div className="mt-3 pt-3 border-t border-gray-600 text-sm text-gray-400 space-y-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                    <p><span className="font-semibold text-gray-300">Answer:</span> {entry.answer.toUpperCase()}</p>
+                    <p><span className="font-semibold text-gray-300">Type:</span> {formatClueType(entry.clueType)}</p>
+                    {entry.theme && (
+                        <p className="sm:col-span-2"><span className="font-semibold text-gray-300">Theme:</span> {entry.theme}</p>
+                    )}
+                </div>
+                <p><span className="font-semibold text-gray-300">Definition:</span> {entry.definition}</p>
             </div>
             <p className="text-xs text-gray-500 mt-3 text-right">{formatTimestamp(entry.timestamp)}</p>
           </div>
@@ -54,6 +63,7 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
       <style>{`
         .animate-fade-in {
           animation: fadeIn 0.5s ease-in-out;
+          animation-fill-mode: backwards;
         }
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }

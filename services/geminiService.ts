@@ -219,7 +219,8 @@ export const generateClue = async (
     definition: string,
     clueType: ClueType,
     isToughie: boolean,
-    setter: string
+    setter: string,
+    theme: string,
 ): Promise<GeneratedClue> => {
   const toughieInstruction = isToughie 
     ? `
@@ -227,26 +228,24 @@ export const generateClue = async (
     : `
 **Difficulty:** Standard difficulty. The clue should be challenging but fair for an average solver.`;
 
+  const themeInstruction = (theme && theme.trim() && theme.toLowerCase() !== 'none')
+    ? `
+**Thematic Element:**
+You MUST incorporate the following theme into the clue's surface reading or wordplay. The connection can be subtle, but the clue should feel relevant to the topic. For example, if the theme is 'Science', the surface reading could sound like a lab note, or an indicator word could be a scientific term.
+- **Theme:** "${theme}"`
+    : '';
+
+  const setterStyleExplanation = getSetterExplanation(setter);
+
   const prompt = `
     You are an expert cryptic crossword setter. Your task is to generate one concise, elegant, and witty cryptic crossword clue.
 
     **Style and Persona:**
-    Adopt the persona of the famous cryptic crossword setter: **${setter}**. Emulate this setter's specific style by following these guidelines:
-    - **Araucaria:** Playful, witty, often with clever, highly misleading surface readings and elaborate themes. **Avoid:** Making clues unsolvable without guessing the theme; individual clues must be fair on their own.
-    - **Ximenes:** The epitome of precision. Strictly fair, grammatically perfect wordplay with no ambiguity. **Avoid:** Any indirect wordplay, definitions that are merely associative, or ambiguity. Every part of the clue must be precise.
-    - **Azed:** A follower of the Ximenean tradition, but known for using obscure words and being very challenging. **Avoid:** Using words that are not in a comprehensive dictionary (like Chambers). The wordplay must remain strictly fair despite the difficult vocabulary.
-    - **Bunthorne:** A classic setter, often witty and elegant in clue construction. **Avoid:** Clumsy or convoluted surface readings; the wit should feel natural, not forced.
-    - **Pasquale:** A linguist, his clues are precise and often feature clever wordplay, sometimes with a slightly academic feel. **Avoid:** Overly dry clues; precision should not sacrifice the 'aha!' moment.
-    - **Rufus:** Known for a light touch, heavy use of cryptic definitions and double definitions, making his puzzles accessible. **Avoid:** Cryptic definitions that are too straightforward. There must still be a misleading element.
-    - **Enigmatist:** As the name suggests, highly complex, multi-layered wordplay that is very challenging and intricate. **Avoid:** Making clues so complex they become an unfair chore to solve. Each layer of wordplay must be logically sound.
-    - **Torquemada:** Historically notorious for being exceptionally obscure and difficult. **Avoid:** Being completely unparsable by modern standards. Clues should not require impossible-to-find external knowledge.
-    - **Everyman:** Beginner-friendly. Clues are clear, fair, and an excellent introduction to cryptics. **Avoid:** Overly simplistic or non-cryptic clues. Wordplay indicators should be clear but still present a challenge.
-    - **Cinephile:** Often includes themes related to film and cinema. Playful and entertaining. **Avoid:** Using references to very obscure films or major spoilers. The clue must be solvable even if the solver doesn't know the specific film.
-    - **Gordius:** Frequently incorporates political or satirical commentary into his clues. **Avoid:** Letting commentary overshadow the wordplay or using references that will date too quickly. The clue must be solvable regardless of political views.
-    - **Paul:** Famous for witty, humorous, and often cheeky or risqué clues. **Avoid:** Being crude rather than witty. Avoid obscure slang. The humour should come from clever misdirection.
-    - **Shed:** Witty, playful, and inventive, in a similar vein to Paul. **Avoid:** Breaking fundamental cryptic rules for the sake of an inventive idea. Ensure the surface reading is coherent.
-    - **Boatman:** Often builds puzzles around a central theme (e.g., sailing), where surface readings cleverly relate to it. **Avoid:** Using jargon so specific that only a subject expert could solve it. Clues must be solvable independently of the theme.
-    You MUST emulate the chosen setter's style in your response.
+    Adopt the persona of the famous cryptic crossword setter: **${setter}**.
+    Emulate this setter's specific style: "${setterStyleExplanation}"
+    You MUST strictly adhere to this style in your response.
+
+    ${themeInstruction}
 
     **Clue Complexity:**
     Vary the complexity based on the chosen wordplay type. For instance, a DOUBLE_DEFINITION should be simple and elegant, while a COMPOSITE clue should naturally be more intricate and layered.

@@ -44,7 +44,7 @@ const TextInput: React.FC<TextInputProps> = ({ label, id, value, maxLength, onSu
             type="button"
             onClick={onSuggestClick}
             disabled={isSuggestLoading || !value}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-indigo-400 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+            className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-indigo-400 disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110"
             aria-label="Suggest synonyms"
           >
             {isSuggestLoading ? (

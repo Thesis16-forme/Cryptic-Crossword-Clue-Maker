@@ -15,7 +15,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ errorMessage, onDismiss }) 
       <p className="text-red-300 text-sm">{errorMessage}</p>
       <button
         onClick={onDismiss}
-        className="p-1 rounded-full text-red-300 hover:bg-red-800/70 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50 transition-colors"
+        className="p-1 rounded-full text-red-300 hover:bg-red-800/70 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50 transition-all duration-200 transform hover:scale-110"
         aria-label="Dismiss error message"
       >
         <CloseIcon />

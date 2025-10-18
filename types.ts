@@ -28,4 +28,5 @@ export interface HistoryEntry {
   clueType: ClueType;
   timestamp: number;
   setter?: string;
+  theme?: string;
 }

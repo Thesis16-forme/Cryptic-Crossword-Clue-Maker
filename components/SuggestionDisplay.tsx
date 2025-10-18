@@ -17,7 +17,7 @@ const SuggestionDisplay: React.FC<SuggestionDisplayProps> = ({ suggestions, isLo
         <h3 className="text-sm font-semibold text-indigo-300">Suggestions for "{targetLabel}"</h3>
         <button
           onClick={onDismiss}
-          className="p-1 rounded-full text-gray-400 hover:bg-gray-600/70 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="p-1 rounded-full text-gray-400 hover:bg-gray-600/70 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 transform hover:scale-110"
           aria-label="Close suggestions"
         >
           <CloseIcon />
@@ -36,7 +36,7 @@ const SuggestionDisplay: React.FC<SuggestionDisplayProps> = ({ suggestions, isLo
                 <button
                   key={index}
                   onClick={() => onSuggestionClick(suggestion)}
-                  className="px-3 py-1 bg-gray-600 text-gray-200 text-sm rounded-full hover:bg-indigo-500 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  className="px-3 py-1 bg-gray-600 text-gray-200 text-sm rounded-full hover:bg-indigo-500 hover:text-white transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 >
                   {suggestion}
                 </button>
