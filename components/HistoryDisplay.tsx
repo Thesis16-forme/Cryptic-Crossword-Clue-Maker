@@ -61,6 +61,7 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
               disabled={history.length === 0}
               className="relative flex items-center space-x-2 text-sm text-indigo-300 hover:text-indigo-200 transition-all duration-200 transform hover:scale-105 bg-indigo-900/50 hover:bg-indigo-900/80 px-3 py-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               aria-label="Copy all clues to clipboard"
+              title="Copy all clues to clipboard"
             >
               <CopyAllIcon />
               <span>Copy All</span>
@@ -74,6 +75,7 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
               onClick={onClear}
               className="flex items-center space-x-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 transform hover:scale-105 bg-red-900/50 hover:bg-red-900/80 px-3 py-1 rounded-md"
               aria-label="Clear history"
+              title="Clear history"
             >
               <TrashIcon />
               <span>Clear</span>

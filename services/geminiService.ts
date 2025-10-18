@@ -162,6 +162,12 @@ export const getClueTypeExplanation = (clueType: ClueType): string => {
         return "A cryptic definition. The entire clue is a witty, misleading, or punning definition of the answer. There is no separate wordplay part; the definition itself is the cryptic puzzle. Often ends with a question mark. For example, for the answer ROW: 'A telling-off on the water?'";
     case ClueType.INITIALISM:
         return "An initialism (or acrostic). The answer is formed by taking the first letters of words in the clue. It requires an indicator such as 'at first', 'initially', 'starts to', or 'in the beginning'. For example, for the answer GEAR: 'Starts to get every answer right'.";
+    case ClueType.ALTERNATION:
+        return "An alternation. The answer is formed by taking letters alternately from two or more other words. The clue will contain indicators like 'alternately', 'regularly', or 'every other'. For example, for SCARE, the clue might define SAC and RED and then say 'take every other letter'.";
+    case ClueType.ODD_EVEN_LETTERS:
+        return "Odd/Even letters. The answer is formed by taking either the odd-positioned or even-positioned letters from a word in the clue. Indicators include 'oddly', 'evenly', 'regularly ignoring', etc. For example, for ATE, the clue might use the word 'gATEway' and the indicator 'oddly'.";
+    case ClueType.SOUND_CHANGE:
+        return "A sound change. The answer is formed by changing a letter or sound within a word to another. The clue will define the original word and indicate the change, e.g., 'change X to Y'. For example, for WANE, the clue might define WINE and instruct 'change the sound of I to A'.";
     default:
       return "A standard cryptic clue.";
   }

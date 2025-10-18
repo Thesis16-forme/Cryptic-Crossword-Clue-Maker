@@ -19,6 +19,7 @@ const SuggestionDisplay: React.FC<SuggestionDisplayProps> = ({ suggestions, isLo
           onClick={onDismiss}
           className="p-1 rounded-full text-gray-400 hover:bg-gray-600/70 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 transform hover:scale-110"
           aria-label="Close suggestions"
+          title="Close suggestions"
         >
           <CloseIcon />
         </button>

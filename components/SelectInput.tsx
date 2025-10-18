@@ -17,7 +17,7 @@ const SelectInput: React.FC<SelectInputProps> = ({ label, id, options, infoText,
           {label}
         </label>
         {infoText && (
-          <div className="relative group">
+          <div className="relative group" title="Show help">
             <InfoIcon />
             <div
               className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 invisible group-hover:visible pointer-events-none z-10"

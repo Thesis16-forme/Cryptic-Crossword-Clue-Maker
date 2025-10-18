@@ -46,6 +46,7 @@ const TextInput: React.FC<TextInputProps> = ({ label, id, value, maxLength, onSu
             disabled={isSuggestLoading || !value}
             className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-indigo-400 disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110"
             aria-label="Suggest synonyms"
+            title="Suggest synonyms"
           >
             {isSuggestLoading ? (
                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

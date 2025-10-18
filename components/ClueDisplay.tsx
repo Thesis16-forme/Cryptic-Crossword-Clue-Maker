@@ -30,6 +30,7 @@ const ClueDisplay: React.FC<ClueDisplayProps> = ({ clue, setter, answerLength })
         onClick={handleCopy}
         className="p-2 rounded-md hover:bg-gray-600 text-gray-400 hover:text-white transition-all duration-200 transform hover:scale-110 relative flex-shrink-0"
         aria-label="Copy clue"
+        title="Copy clue"
       >
         <CopyIcon />
         {copied && (

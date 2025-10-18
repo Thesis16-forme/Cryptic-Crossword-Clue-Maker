@@ -315,6 +315,7 @@ const App: React.FC = () => {
                       className="inline-flex items-center space-x-2 text-sm font-medium text-gray-400 hover:text-white transition-all duration-200 transform hover:scale-105 p-2 rounded-md hover:bg-gray-700/50"
                       aria-expanded={isHistoryVisible}
                       aria-controls="history-section"
+                      title={isHistoryVisible ? 'Hide History' : 'Show History'}
                   >
                       <HistoryIcon />
                       <span>{isHistoryVisible ? 'Hide History' : 'Show History'} ({history.length})</span>
