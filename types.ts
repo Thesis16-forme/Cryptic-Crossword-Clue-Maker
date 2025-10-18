@@ -17,6 +17,7 @@ export enum ClueType {
   ALTERNATION = 'ALTERNATION',
   ODD_EVEN_LETTERS = 'ODD_EVEN_LETTERS',
   SOUND_CHANGE = 'SOUND_CHANGE',
+  REBUS = 'REBUS',
 }
 
 export interface GeneratedClue {

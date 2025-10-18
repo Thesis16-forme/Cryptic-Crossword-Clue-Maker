@@ -30,9 +30,9 @@ const loadMetadata = async (): Promise<AppMetadata> => {
     // Fallback data in case of error
     return {
       setters: [
-        "Araucaria", "Azed", "Boatman", "Bunthorne", "Cinephile",
-        "Enigmatist", "Everyman", "Gordius", "Pasquale", "Paul",
-        "Rufus", "Shed", "Torquemada", "Ximenes"
+        "Anax", "Araucaria", "Azed", "Boatman", "Bunthorne", "Cinephile",
+        "Dac", "Enigmatist", "Everyman", "Gordius", "Pasquale", "Paul",
+        "Picaroon", "Rufus", "Shed", "Torquemada", "Vlad", "Ximenes"
       ]
     };
   }
@@ -97,34 +97,42 @@ const handleApiError = (error: unknown): Error => {
 
 export const getSetterExplanation = (setter: string): string => {
   switch (setter) {
+    case "Anax":
+      return "A modern master of the difficult puzzle. Anax is known for highly inventive, sometimes fiendishly complex clues with brilliant surface readings. His puzzles often push the boundaries of cluing conventions and are a tough but rewarding challenge for experts.";
     case "Araucaria":
       return "Known for his playful, liberal, and often humorous style. His clues frequently feature elaborate themes. He was a master of the misleading surface reading and wasn't afraid to bend the 'rules' for the sake of a great clue. Expect wit and invention.";
-    case "Ximenes":
-      return "The father of modern cryptic crossword rules ('Ximenean principles'). His style is defined by its absolute fairness and precision. Expect grammatically perfect wordplay, no ambiguity, and a strict adherence to logic. Elegant but very challenging due to its exactness.";
     case "Azed":
       return "A torchbearer of the Ximenean tradition, known for his advanced, highly challenging puzzles. Azed clues are scrupulously fair but demand a large vocabulary, as he frequently uses obscure and archaic words. Tough but rewarding for the connoisseur.";
-    case "Bunthorne":
-      return "A classic and respected setter. Bunthorne's style is characterized by its wit, elegance, and smooth surface readings. His clues are generally fair and well-constructed, providing a satisfying challenge without being overly obscure or wild.";
-    case "Pasquale":
-      return "A highly prolific setter and linguist, his clues are known for their precision and economy of language. He often has a slightly academic or high-brow feel, but the wordplay is always fair and logical, following the Ximenean tradition closely.";
-    case "Rufus":
-      return "A master of the gentle cryptic, perfect for beginners. His puzzles rely heavily on witty cryptic definitions and double definitions, with less emphasis on complex wordplay. The goal is fun and a satisfying 'aha!' moment.";
-    case "Enigmatist":
-      return "One of the toughest setters out there. Enigmatist's clues are notoriously difficult, featuring intricate, multi-layered wordplay and fiendishly misleading definitions. A serious undertaking reserved for expert solvers.";
-    case "Torquemada":
-      return "One of the earliest setters, known for puzzles of legendary difficulty. His clues were often wilfully obscure and didn't always follow the strict rules of modern cryptics. Selecting his style will produce very challenging and old-fashioned clues.";
-    case "Everyman":
-      return "The traditional name for The Observer's beginner-friendly puzzle. Everyman clues are a perfect starting point, designed to be straightforward and scrupulously fair. Ideal for learning the ropes of cryptic crosswords.";
-    case "Cinephile":
-      return "The pseudonym of the late, great Araucaria. As the name suggests, his puzzles were often infused with themes from the world of film. The style is playful, witty, and highly entertaining.";
-    case "Gordius":
-      return "Known for his sharp wit and a tendency to weave left-leaning political and social commentary into his puzzles. Gordius's clues often have a satirical edge, with surface readings that poke fun at current events or public figures.";
-    case "Paul":
-      return "One of the most popular modern setters, famous for his wit, humour, and a love of mischievous, schoolboyish vulgarity. His clues are often laugh-out-loud funny and known for clever use of innuendo, but the underlying wordplay is brilliant.";
-    case "Shed":
-      return "Shares a similar humorous and inventive style with Paul. His clues are witty and enjoyable, with excellent surface readings. Slightly less prone to overt cheekiness than Paul but delivers an equally satisfying and fun solving experience.";
     case "Boatman":
       return "A master of the themed puzzle. Nearly every clue's surface reading will cleverly relate to the puzzle's central theme, creating a wonderfully cohesive and immersive experience. He uses a wide variety of inventive clue types.";
+    case "Bunthorne":
+      return "A classic and respected setter. Bunthorne's style is characterized by its wit, elegance, and smooth surface readings. His clues are generally fair and well-constructed, providing a satisfying challenge without being overly obscure or wild.";
+    case "Cinephile":
+      return "The pseudonym of the late, great Araucaria. As the name suggests, his puzzles were often infused with themes from the world of film. The style is playful, witty, and highly entertaining.";
+    case "Dac":
+       return "Widely regarded for his smooth, natural surface readings and scrupulously fair clues. Dac's puzzles are a model of elegance and consistency, providing a satisfying and accessible challenge that is witty without being overly difficult. A true craftsman.";
+    case "Enigmatist":
+      return "One of the toughest setters out there. Enigmatist's clues are notoriously difficult, featuring intricate, multi-layered wordplay and fiendishly misleading definitions. A serious undertaking reserved for expert solvers.";
+    case "Everyman":
+      return "The traditional name for The Observer's beginner-friendly puzzle. Everyman clues are a perfect starting point, designed to be straightforward and scrupulously fair. Ideal for learning the ropes of cryptic crosswords.";
+    case "Gordius":
+      return "Known for his sharp wit and a tendency to weave left-leaning political and social commentary into his puzzles. Gordius's clues often have a satirical edge, with surface readings that poke fun at current events or public figures.";
+    case "Pasquale":
+      return "A highly prolific setter and linguist, his clues are known for their precision and economy of language. He often has a slightly academic or high-brow feel, but the wordplay is always fair and logical, following the Ximenean tradition closely.";
+    case "Paul":
+      return "One of the most popular modern setters, famous for his wit, humour, and a love of mischievous, schoolboyish vulgarity. His clues are often laugh-out-loud funny and known for clever use of innuendo, but the underlying wordplay is brilliant.";
+    case "Picaroon":
+       return "A highly popular Guardian setter, known for his mischievous wit and superbly constructed clues. Picaroon (also known as Buccaneer) blends clever wordplay with entertaining surfaces, often with a modern and topical flavour. His puzzles are fun and challenging in equal measure.";
+    case "Rufus":
+      return "A master of the gentle cryptic, perfect for beginners. His puzzles rely heavily on witty cryptic definitions and double definitions, with less emphasis on complex wordplay. The goal is fun and a satisfying 'aha!' moment.";
+    case "Shed":
+      return "Shares a similar humorous and inventive style with Paul. His clues are witty and enjoyable, with excellent surface readings. Slightly less prone to overt cheekiness than Paul but delivers an equally satisfying and fun solving experience.";
+    case "Torquemada":
+      return "One of the earliest setters, known for puzzles of legendary difficulty. His clues were often wilfully obscure and didn't always follow the strict rules of modern cryptics. Selecting his style will produce very challenging and old-fashioned clues.";
+    case "Vlad":
+       return "As his pseudonym 'The Impaler' suggests, Vlad's puzzles can be tough. He is known for his dark wit, clever misdirection, and intricate wordplay. His clues often have a slightly edgy or political feel and demand careful, precise solving.";
+    case "Ximenes":
+      return "The father of modern cryptic crossword rules ('Ximenean principles'). His style is defined by its absolute fairness and precision. Expect grammatically perfect wordplay, no ambiguity, and a strict adherence to logic. Elegant but very challenging due to its exactness.";
     default:
       return "Select a setter to see their stylistic description.";
   }
@@ -168,6 +176,8 @@ export const getClueTypeExplanation = (clueType: ClueType): string => {
         return "Odd/Even letters. The answer is formed by taking either the odd-positioned or even-positioned letters from a word in the clue. Indicators include 'oddly', 'evenly', 'regularly ignoring', etc. For example, for ATE, the clue might use the word 'gATEway' and the indicator 'oddly'.";
     case ClueType.SOUND_CHANGE:
         return "A sound change. The answer is formed by changing a letter or sound within a word to another. The clue will define the original word and indicate the change, e.g., 'change X to Y'. For example, for WANE, the clue might define WINE and instruct 'change the sound of I to A'.";
+    case ClueType.REBUS:
+        return "A 'meta' clue where the answer itself is a piece of wordplay. The clue has a definition for the answer, plus wordplay that describes the *result* of the answer's instructions. For example, for the answer BROKEN HEART (a term for 'despair'), the clue's wordplay might be 'Earth', because 'heart' when 'broken' (anagrammed) becomes 'earth'.";
     default:
       return "A standard cryptic clue.";
   }

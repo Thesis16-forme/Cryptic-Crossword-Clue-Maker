@@ -1,21 +1,25 @@
 {
   "name": "Cryptic Crossword Clue Maker",
-  "description": "An application that uses AI to generate cryptic crossword clues based on a user-provided answer, definition, and clue type.",
+  "description": "An application that uses AI to generate cryptic crossword clues based on a user-provided answer, a definition, and a clue type.",
   "requestFramePermissions": [],
   "setters": [
+    "Anax",
     "Araucaria",
     "Azed",
     "Boatman",
     "Bunthorne",
     "Cinephile",
+    "Dac",
     "Enigmatist",
     "Everyman",
     "Gordius",
     "Pasquale",
     "Paul",
+    "Picaroon",
     "Rufus",
     "Shed",
     "Torquemada",
+    "Vlad",
     "Ximenes"
   ]
 }

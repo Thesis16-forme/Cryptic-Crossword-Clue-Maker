@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ClueType, GeneratedClue } from './types';
 import { generateClue, getClueTypeExplanation, getSetterExplanation, getMetadata, getSynonyms } from './services/geminiService';
 import { useHistory } from './hooks/useHistory';
@@ -36,6 +36,12 @@ const App: React.FC = () => {
   const [synonymSuggestions, setSynonymSuggestions] = useState<string[]>([]);
   const [isSynonymLoading, setIsSynonymLoading] = useState<boolean>(false);
   const [suggestionTarget, setSuggestionTarget] = useState<'answer' | 'definition' | null>(null);
+  const [synonymCache, setSynonymCache] = useState<Record<string, string[]>>({});
+  const [highlightedInput, setHighlightedInput] = useState<'answer' | 'definition' | null>(null);
+
+
+  const answerSuggestionRef = useRef<HTMLDivElement>(null);
+  const definitionSuggestionRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -55,11 +61,34 @@ const App: React.FC = () => {
     fetchSetters();
   }, []);
 
+  const handleDismissSuggestions = useCallback(() => {
+    setSuggestionTarget(null);
+    setSynonymSuggestions([]);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        const isClickInAnswer = answerSuggestionRef.current?.contains(event.target as Node);
+        const isClickInDefinition = definitionSuggestionRef.current?.contains(event.target as Node);
+
+        if (!isClickInAnswer && !isClickInDefinition) {
+            handleDismissSuggestions();
+        }
+    };
+
+    if (suggestionTarget) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [suggestionTarget, handleDismissSuggestions]);
+
   const handleSuggestSynonyms = useCallback(async (target: 'answer' | 'definition') => {
     const textToSuggest = target === 'answer' ? answer : definition;
     if (!textToSuggest.trim()) return;
 
-    // If suggestions for this target are already open, close them. Otherwise, open them.
     if (suggestionTarget === target) {
         setSuggestionTarget(null);
         setSynonymSuggestions([]);
@@ -67,36 +96,42 @@ const App: React.FC = () => {
     }
 
     setSuggestionTarget(target);
-    setIsSynonymLoading(true);
     setSynonymSuggestions([]);
     setError(null);
+
+    // Check cache first
+    if (synonymCache[textToSuggest]) {
+        setSynonymSuggestions(synonymCache[textToSuggest]);
+        return;
+    }
+
+    setIsSynonymLoading(true);
 
     try {
         const suggestions = await getSynonyms(textToSuggest);
         setSynonymSuggestions(suggestions);
+        setSynonymCache(prev => ({ ...prev, [textToSuggest]: suggestions }));
     } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred while fetching suggestions.');
-        setSuggestionTarget(null); // Close suggestion box on error
+        setSuggestionTarget(null);
     } finally {
         setIsSynonymLoading(false);
     }
-  }, [answer, definition, suggestionTarget]);
+  }, [answer, definition, suggestionTarget, synonymCache]);
 
   const handleSuggestionClick = (suggestion: string) => {
     if (suggestionTarget === 'answer') {
         setAnswer(suggestion);
+        setHighlightedInput('answer');
     } else if (suggestionTarget === 'definition') {
         setDefinition(suggestion);
+        setHighlightedInput('definition');
     }
-    // Close the suggestion box
     setSuggestionTarget(null);
     setSynonymSuggestions([]);
-  };
 
-  const handleDismissSuggestions = () => {
-    setSuggestionTarget(null);
-    setSynonymSuggestions([]);
-  }
+    setTimeout(() => setHighlightedInput(null), 1000);
+  };
 
   const clueTypeOptions = Object.values(ClueType).map(value => ({
     value,
@@ -187,7 +222,7 @@ const App: React.FC = () => {
         <Header />
         <main className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
+            <div ref={answerSuggestionRef}>
               <TextInput
                 id="answer"
                 label="Answer"
@@ -198,6 +233,7 @@ const App: React.FC = () => {
                 maxLength={MAX_ANSWER_LENGTH}
                 onSuggestClick={() => handleSuggestSynonyms('answer')}
                 isSuggestLoading={isSynonymLoading && suggestionTarget === 'answer'}
+                isHighlighted={highlightedInput === 'answer'}
               />
               {suggestionTarget === 'answer' && (
                   <SuggestionDisplay
@@ -209,7 +245,7 @@ const App: React.FC = () => {
                   />
               )}
             </div>
-            <div>
+            <div ref={definitionSuggestionRef}>
               <TextInput
                 id="definition"
                 label="Definition"
@@ -220,6 +256,7 @@ const App: React.FC = () => {
                 maxLength={MAX_DEFINITION_LENGTH}
                 onSuggestClick={() => handleSuggestSynonyms('definition')}
                 isSuggestLoading={isSynonymLoading && suggestionTarget === 'definition'}
+                isHighlighted={highlightedInput === 'definition'}
               />
                {suggestionTarget === 'definition' && (
                   <SuggestionDisplay
