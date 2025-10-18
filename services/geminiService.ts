@@ -48,21 +48,47 @@ export const getMetadata = (): Promise<AppMetadata> => {
 const handleApiError = (error: unknown): Error => {
   console.error("Gemini API Error:", error);
 
+  // Convert the error to a lowercase string for consistent checking
+  let errorMessage = '';
   if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    
-    if (message.includes("api key not valid") || message.includes("not found")) {
-      return new Error("Invalid API Key. Please check your configuration.");
+    errorMessage = error.message.toLowerCase();
+  } else {
+    try {
+      // Handles cases where the error is an object (like the API response)
+      errorMessage = JSON.stringify(error).toLowerCase();
+    } catch (e) {
+      // Fallback for non-stringifiable types
+      errorMessage = String(error).toLowerCase();
     }
-    if (message.includes("rate limit") || message.includes("quota")) {
-      return new Error("You've made too many requests. Please wait a moment and try again.");
-    }
-    if (message.includes("candidate was blocked")) {
-      return new Error("The request was blocked for safety reasons. Please modify your input and try again.");
-    }
-    if (message.includes("failed to fetch")) {
-        return new Error("Network error. Please check your internet connection and try again.");
-    }
+  }
+  
+  // API Key issues
+  if (errorMessage.includes("api key not valid") || errorMessage.includes("api_key_not_valid") || errorMessage.includes("not found")) {
+    return new Error("Invalid API Key. Please check your configuration and try again.");
+  }
+  // Quota issues
+  if (errorMessage.includes("quota") || errorMessage.includes("resource_exhausted")) {
+    return new Error("You have exceeded your API quota. Please check your plan and billing details, or try again later.");
+  }
+  // Rate limiting issues
+  if (errorMessage.includes("rate limit")) {
+    return new Error("You've made too many requests in a short period. Please wait a moment and try again.");
+  }
+  // Content safety issues
+  if (errorMessage.includes("candidate was blocked")) {
+    return new Error("The request was blocked for safety reasons. Please modify your input and try again.");
+  }
+  // Network issues (client-side)
+  if (errorMessage.includes("failed to fetch")) {
+      return new Error("Network error. Please check your internet connection and try again.");
+  }
+  // Server-side issues (5xx errors)
+  if (errorMessage.includes("server error") || errorMessage.includes("500") || errorMessage.includes("503") || errorMessage.includes("service unavailable")) {
+      return new Error("The AI service is currently unavailable. Please try again in a few moments.");
+  }
+  // Badly formatted response from AI
+  if (errorMessage.includes("unexpected format") || errorMessage.includes("invalid response")) {
+      return new Error("The AI returned a response in an unexpected format. Please try again.");
   }
   
   // Default fallback error for other unhandled cases
@@ -175,12 +201,12 @@ export const getSynonyms = async (text: string): Promise<string[]> => {
             const parsedResponse: string[] = JSON.parse(responseText);
             if (!Array.isArray(parsedResponse)) {
                 console.error("AI response for synonyms was not an array:", parsedResponse);
-                return [];
+                throw new Error("The AI returned an invalid response for synonyms.");
             }
             return parsedResponse;
         } catch (e) {
-            console.error("Failed to parse synonyms response as JSON:", responseText);
-            return [];
+            console.error("Failed to parse synonyms response as JSON:", responseText, e);
+            throw new Error("The AI returned a response for synonyms in an unexpected format.");
         }
     } catch (error) {
         throw handleApiError(error);
@@ -268,16 +294,12 @@ export const generateClue = async (
     try {
         const parsedResponse: GeneratedClue = JSON.parse(text);
         if (!parsedResponse.clue || !parsedResponse.setter) {
-            throw new Error("AI response is missing required fields.");
+            throw new Error("AI response is missing required fields (invalid response).");
         }
         return parsedResponse;
     } catch (e) {
-        console.error("Failed to parse AI response as JSON:", text);
-        // Fallback in case of malformed JSON
-        return {
-            clue: text.replace(/\\"/g, '"'), // Basic un-escaping
-            setter: setter,
-        };
+        console.error("Failed to parse AI response as JSON:", text, e);
+        throw new Error("The AI returned a response in an unexpected format.");
     }
 
   } catch (error) {
