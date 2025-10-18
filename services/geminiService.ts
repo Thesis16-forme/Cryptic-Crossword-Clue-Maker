@@ -38,13 +38,47 @@ const loadMetadata = async (): Promise<AppMetadata> => {
   }
 };
 
-const getMetadata = (): Promise<AppMetadata> => {
+export const getMetadata = (): Promise<AppMetadata> => {
     if (!metadataPromise) {
         metadataPromise = loadMetadata();
     }
     return metadataPromise;
 }
 
+export const getSetterExplanation = (setter: string): string => {
+  switch (setter) {
+    case "Araucaria":
+      return "Playful, witty, often with clever, highly misleading surface readings and elaborate themes.";
+    case "Ximenes":
+      return "The epitome of precision. Strictly fair, grammatically perfect wordplay with no ambiguity.";
+    case "Azed":
+      return "A follower of the Ximenean tradition, but known for using obscure words and being very challenging.";
+    case "Bunthorne":
+      return "A classic setter, often witty and elegant in clue construction.";
+    case "Pasquale":
+      return "A linguist, his clues are precise and often feature clever wordplay, with a slightly academic feel.";
+    case "Rufus":
+      return "Known for a light touch, heavy use of cryptic definitions and double definitions, making his puzzles accessible.";
+    case "Enigmatist":
+      return "As the name suggests, highly complex, multi-layered wordplay that is very challenging and intricate.";
+    case "Torquemada":
+      return "Historically notorious for being exceptionally obscure and difficult.";
+    case "Everyman":
+      return "Beginner-friendly. Clues are clear, fair, and an excellent introduction to cryptics.";
+    case "Cinephile":
+      return "Often includes themes related to film and cinema. Playful and entertaining.";
+    case "Gordius":
+      return "Frequently incorporates political or satirical commentary into his clues.";
+    case "Paul":
+      return "Famous for witty, humorous, and often cheeky or risqué clues.";
+    case "Shed":
+      return "Witty, playful, and inventive, in a similar vein to Paul.";
+    case "Boatman":
+      return "Often builds puzzles around a central theme (e.g., sailing), where surface readings cleverly relate to it.";
+    default:
+      return "Select a setter to see their stylistic description.";
+  }
+};
 
 // FIX: Export the function to make it available for import in other files.
 export const getClueTypeExplanation = (clueType: ClueType): string => {
@@ -82,12 +116,9 @@ export const generateClue = async (
     answer: string,
     definition: string,
     clueType: ClueType,
-    isToughie: boolean
+    isToughie: boolean,
+    setter: string
 ): Promise<GeneratedClue> => {
-  const metadata = await getMetadata();
-  const setters = metadata.setters;
-  const randomSetter = setters[Math.floor(Math.random() * setters.length)];
-
   const toughieInstruction = isToughie 
     ? `
 **Difficulty:** This is a 'Toughie' clue. Increase the difficulty significantly. Use more obscure vocabulary, subtler indicators, and more complex or layered wordplay. The surface reading should be exceptionally misleading.`
@@ -98,7 +129,7 @@ export const generateClue = async (
     You are an expert cryptic crossword setter. Your task is to generate one concise, elegant, and witty cryptic crossword clue.
 
     **Style and Persona:**
-    Adopt the persona of the famous cryptic crossword setter: **${randomSetter}**. Emulate this setter's specific style by following these guidelines:
+    Adopt the persona of the famous cryptic crossword setter: **${setter}**. Emulate this setter's specific style by following these guidelines:
     - **Araucaria:** Playful, witty, often with clever, highly misleading surface readings and elaborate themes.
     - **Ximenes:** The epitome of precision. Strictly fair, grammatically perfect wordplay with no ambiguity.
     - **Azed:** A follower of the Ximenean tradition, but known for using obscure words and being very challenging.
@@ -136,7 +167,7 @@ export const generateClue = async (
     Provide ONLY a valid JSON object in the following format. Do not add any preamble, explanation, or markdown backticks.
     {
       "clue": "The final cryptic clue text.",
-      "setter": "${randomSetter}"
+      "setter": "${setter}"
     }
   `;
 
@@ -169,7 +200,7 @@ export const generateClue = async (
         // Fallback in case of malformed JSON
         return {
             clue: text.replace(/\\"/g, '"'), // Basic un-escaping
-            setter: randomSetter,
+            setter: setter,
         };
     }
 

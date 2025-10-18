@@ -1,7 +1,6 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ClueType, GeneratedClue } from './types';
-import { generateClue, getClueTypeExplanation } from './services/geminiService';
+import { generateClue, getClueTypeExplanation, getSetterExplanation, getMetadata } from './services/geminiService';
 import { useHistory } from './hooks/useHistory';
 import Header from './components/Header';
 import TextInput from './components/TextInput';
@@ -20,6 +19,8 @@ const App: React.FC = () => {
   const [answer, setAnswer] = useState<string>('');
   const [definition, setDefinition] = useState<string>('');
   const [clueType, setClueType] = useState<ClueType>(ClueType.ANAGRAM);
+  const [setters, setSetters] = useState<string[]>([]);
+  const [setter, setSetter] = useState<string>('');
   const [generatedClue, setGeneratedClue] = useState<GeneratedClue | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,16 +28,39 @@ const App: React.FC = () => {
   const [history, addHistoryEntry, clearHistory] = useHistory();
   const [isHistoryVisible, setIsHistoryVisible] = useState<boolean>(false);
 
+  useEffect(() => {
+    const fetchSetters = async () => {
+        try {
+            const metadata = await getMetadata();
+            setSetters(metadata.setters);
+            if (metadata.setters.length > 0) {
+                // Default to 'Paul' if available, otherwise the first in the list
+                setSetter(metadata.setters.find(s => s === 'Paul') || metadata.setters[0]);
+            }
+        } catch (e) {
+            console.error("Failed to load setters", e);
+            setError("Could not load setter styles. Please refresh the page.");
+        }
+    };
+    fetchSetters();
+  }, []);
+
   const clueTypeOptions = Object.values(ClueType).map(value => ({
     value,
     label: value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
   }));
+
+  const setterOptions = setters.map(s => ({ value: s, label: s }));
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!answer || !definition) {
       setError('Please provide both an answer and a definition.');
       return;
+    }
+    if (!setter) {
+        setError('Please select a setter style.');
+        return;
     }
     if (answer.length > MAX_ANSWER_LENGTH) {
         setError(`The answer cannot be longer than ${MAX_ANSWER_LENGTH} characters.`);
@@ -52,7 +76,7 @@ const App: React.FC = () => {
     setGeneratedClue(null);
 
     try {
-      const clueObject = await generateClue(answer, definition, clueType, isToughie);
+      const clueObject = await generateClue(answer, definition, clueType, isToughie, setter);
       setGeneratedClue(clueObject);
       addHistoryEntry({
         clue: clueObject.clue,
@@ -66,7 +90,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [answer, definition, clueType, isToughie, addHistoryEntry]);
+  }, [answer, definition, clueType, isToughie, setter, addHistoryEntry]);
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans">
@@ -99,6 +123,14 @@ const App: React.FC = () => {
               onChange={(e) => setClueType(e.target.value as ClueType)}
               options={clueTypeOptions}
               infoText={getClueTypeExplanation(clueType)}
+            />
+            <SelectInput
+              id="setter"
+              label="Setter Style"
+              value={setter}
+              onChange={(e) => setSetter(e.target.value)}
+              options={setterOptions}
+              infoText={getSetterExplanation(setter)}
             />
              <div className="flex items-center justify-end pt-2">
                 <label htmlFor="toughie" className="mr-3 block text-sm font-medium text-gray-300">
