@@ -71,15 +71,6 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
                 </span>
               )}
             </button>
-            <button
-              onClick={onClear}
-              className="flex items-center space-x-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 transform hover:scale-105 bg-red-900/50 hover:bg-red-900/80 px-3 py-1 rounded-md"
-              aria-label="Clear history"
-              title="Clear history"
-            >
-              <TrashIcon />
-              <span>Clear</span>
-            </button>
         </div>
       </div>
       
@@ -110,6 +101,19 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
           </div>
         ))}
       </div>
+
+      <div className="pt-4 mt-2 border-t border-gray-700 flex justify-center">
+        <button
+          onClick={onClear}
+          className="flex items-center space-x-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 transform hover:scale-105 bg-red-900/50 hover:bg-red-900/80 px-4 py-2 rounded-md"
+          aria-label="Clear all history"
+          title="Clear all history"
+        >
+          <TrashIcon />
+          <span>Clear All History</span>
+        </button>
+      </div>
+
       <style>{`
         .animate-fade-in {
           animation: fadeIn 0.5s ease-in-out;

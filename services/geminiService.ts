@@ -276,6 +276,9 @@ You MUST incorporate the following theme into the clue's surface reading or word
     Vary the complexity based on the chosen wordplay type. For instance, a DOUBLE_DEFINITION should be simple and elegant, while a COMPOSITE clue should naturally be more intricate and layered.
     ${toughieInstruction}
 
+    **Wordplay Sophistication:**
+    - **Prioritize Creativity:** Strive for clever, sophisticated wordplay. Avoid using the most common or obvious synonyms for components of the answer. Instead, seek out more creative, less direct, but still fair, word associations to make the clue more rewarding and create a satisfying "aha!" moment.
+
     **Rules for the Clue:**
     1.  The clue must have two parts: a precise, dictionary-style definition and a wordplay part.
     2.  The wordplay must fairly and logically lead to the answer.

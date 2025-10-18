@@ -371,6 +371,9 @@ const App: React.FC = () => {
       </div>
        <footer className="w-full max-w-2xl mx-auto text-center mt-8 text-gray-500 text-sm">
         <p>Powered by Gemini. For entertainment purposes only.</p>
+        <p className="mt-2">
+          <a href="/about.html" className="underline hover:text-gray-300 transition-colors">About this App</a>
+        </p>
       </footer>
       <style>{`
         .animate-clue-display {
