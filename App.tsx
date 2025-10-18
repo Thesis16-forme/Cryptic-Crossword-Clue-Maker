@@ -107,15 +107,22 @@ const App: React.FC = () => {
 
   const themeOptions = [
     { value: 'None', label: 'None' },
-    { value: 'Science', label: 'Science' },
-    { value: 'Literature', label: 'Literature' },
-    { value: 'History', label: 'History' },
-    { value: 'Music', label: 'Music' },
+    { value: 'Art', label: 'Art' },
+    { value: 'Business & Finance', label: 'Business & Finance' },
     { value: 'Food & Drink', label: 'Food & Drink' },
     { value: 'Geography', label: 'Geography' },
+    { value: 'History', label: 'History' },
     { value: 'Holidays', label: 'Holidays' },
+    { value: 'Literature', label: 'Literature' },
+    { value: 'Movies', label: 'Movies' },
+    { value: 'Music', label: 'Music' },
+    { value: 'Mythology', label: 'Mythology' },
+    { value: 'Nature', label: 'Nature' },
+    { value: 'Politics', label: 'Politics' },
+    { value: 'Science', label: 'Science' },
     { value: 'Sports', label: 'Sports' },
     { value: 'Technology', label: 'Technology' },
+    { value: 'Travel', label: 'Travel' },
     { value: 'Custom', label: 'Custom...' },
   ];
 
