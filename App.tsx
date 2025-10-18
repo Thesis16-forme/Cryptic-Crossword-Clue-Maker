@@ -1,307 +1,152 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Header } from './components/Header';
-import { InputForm } from './components/InputForm';
-import { ClueCard } from './components/ClueCard';
-import { Loader } from './components/Loader';
-import { type FormData, type Clue, type SavedClue } from './types';
-import { generateCrosswordClues, findDefinitions, generateClueVariations } from './services/geminiService';
-import { AboutModal } from './components/AboutModal';
-import { SavedCluesModal } from './components/SavedCluesModal';
-import { ErrorDisplay } from './components/ErrorDisplay';
+import React, { useState, useCallback } from 'react';
+import { ClueType, GeneratedClue } from './types';
+import { generateClue, getClueTypeExplanation } from './services/geminiService';
+import { useHistory } from './hooks/useHistory';
+import Header from './components/Header';
+import TextInput from './components/TextInput';
+import SelectInput from './components/SelectInput';
+import Button from './components/Button';
+import ClueDisplay from './components/ClueDisplay';
+import Spinner from './components/Spinner';
+import HistoryDisplay from './components/HistoryDisplay';
+import { HistoryIcon } from './components/HistoryIcon';
+import ErrorDisplay from './components/ErrorDisplay';
+
+const MAX_ANSWER_LENGTH = 25;
+const MAX_DEFINITION_LENGTH = 80;
 
 const App: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({
-    answer: '',
-    definition: '',
-    wordplayBreakdown: '',
-    crypticDevice: 'Any',
-    difficulty: 'Medium',
-    persona: 'Guardian Master Setter',
-  });
-  const [clues, setClues] = useState<Clue[]>([]);
+  const [answer, setAnswer] = useState<string>('');
+  const [definition, setDefinition] = useState<string>('');
+  const [clueType, setClueType] = useState<ClueType>(ClueType.ANAGRAM);
+  const [generatedClue, setGeneratedClue] = useState<GeneratedClue | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isFindingDefinition, setIsFindingDefinition] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastAction, setLastAction] = useState<{ name: 'submit' | 'definition' | 'variations'; payload?: any } | null>(null);
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState<boolean>(false);
-  const [isSavedCluesModalOpen, setIsSavedCluesModalOpen] = useState<boolean>(false);
-  const [savedClues, setSavedClues] = useState<SavedClue[]>([]);
-  const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormData, string>>>({});
-  const [saveMessage, setSaveMessage] = useState<string>('');
+  const [isToughie, setIsToughie] = useState<boolean>(false);
+  const [history, addHistoryEntry, clearHistory] = useHistory();
+  const [isHistoryVisible, setIsHistoryVisible] = useState<boolean>(false);
 
-  useEffect(() => {
-    try {
-      const savedData = localStorage.getItem('crypticClueFormData');
-      if (savedData) {
-        setFormData(JSON.parse(savedData));
-      }
-      const savedCluesData = localStorage.getItem('crypticSavedClues');
-      if (savedCluesData) {
-        setSavedClues(JSON.parse(savedCluesData));
-      }
-    } catch (e) {
-      console.error("Failed to parse saved data from localStorage", e);
+  const clueTypeOptions = Object.values(ClueType).map(value => ({
+    value,
+    label: value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+  }));
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!answer || !definition) {
+      setError('Please provide both an answer and a definition.');
+      return;
     }
-  }, []);
-
-  useEffect(() => {
-    const handleSave = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        localStorage.setItem('crypticClueFormData', JSON.stringify(formData));
-        setSaveMessage('Input saved!');
-        setTimeout(() => setSaveMessage(''), 2000);
-      }
-    };
-    window.addEventListener('keydown', handleSave);
-    return () => window.removeEventListener('keydown', handleSave);
-  }, [formData]);
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    const finalValue = name === 'answer' ? value.toUpperCase() : value;
-    setFormData(prev => ({ ...prev, [name]: finalValue }));
-    if (validationErrors[name as keyof FormData]) {
-      setValidationErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const errors: Partial<Record<keyof FormData, string>> = {};
-    if (!formData.answer.trim()) {
-      errors.answer = 'Please provide an answer word.';
-    }
-    if (!formData.definition.trim()) {
-      errors.definition = 'Please provide a definition.';
-    }
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const performSubmit = useCallback(async () => {
-    if (isLoading) return;
-    if (!validateForm()) return;
-    
     setIsLoading(true);
     setError(null);
-    setLastAction(null);
-    setClues([]);
+    setGeneratedClue(null);
 
     try {
-      const generatedClues = await generateCrosswordClues(formData);
-      const savedClueTexts = new Set(savedClues.map(c => c.clue));
-      const cluesWithSavedStatus = generatedClues.map(clue => ({
-        ...clue,
-        isSaved: savedClueTexts.has(clue.clue),
-      }));
-      setClues(cluesWithSavedStatus);
+      const clueObject = await generateClue(answer, definition, clueType, isToughie);
+      setGeneratedClue(clueObject);
+      addHistoryEntry({
+        clue: clueObject.clue,
+        answer,
+        definition,
+        clueType,
+        setter: clueObject.setter,
+      });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setError(errorMessage);
-      setLastAction({ name: 'submit' });
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
       setIsLoading(false);
     }
-  }, [formData, isLoading, savedClues]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    performSubmit();
-  };
-  
-  const clearForm = () => {
-    setFormData({
-      answer: '',
-      definition: '',
-      wordplayBreakdown: '',
-      crypticDevice: 'Any',
-      difficulty: 'Medium',
-      persona: 'Guardian Master Setter',
-    });
-    setClues([]);
-    setError(null);
-    setLastAction(null);
-    setValidationErrors({});
-    localStorage.removeItem('crypticClueFormData');
-  };
-
-  const loadExample = () => {
-    setFormData({
-      answer: 'STAGNATE',
-      definition: 'Stop developing',
-      wordplayBreakdown: '(NAGS TATE)*',
-      crypticDevice: 'Anagram',
-      difficulty: 'Medium',
-      persona: 'Guardian Master Setter',
-    });
-    setClues([]);
-    setError(null);
-    setLastAction(null);
-    setValidationErrors({});
-  };
-
-  const performFindDefinition = useCallback(async () => {
-    if (!formData.answer.trim()) {
-      setValidationErrors({ answer: 'Please provide an answer word to find its definition.' });
-      return;
-    }
-
-    setIsFindingDefinition(true);
-    setError(null);
-    setLastAction(null);
-    setValidationErrors({});
-
-    try {
-        const definition = await findDefinitions(formData.answer);
-        setFormData(prev => ({ ...prev, definition }));
-    } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while finding the definition.';
-        setError(errorMessage);
-        setLastAction({ name: 'definition' });
-        console.error(err);
-    } finally {
-        setIsFindingDefinition(false);
-    }
-  }, [formData.answer]);
-
-  const performGetVariations = useCallback(async (clueIndex: number) => {
-    const originalClue = clues[clueIndex];
-    if (!originalClue || originalClue.isLoadingVariations) return;
-
-    setClues(prevClues => prevClues.map((c, i) => i === clueIndex ? { ...c, isLoadingVariations: true } : c));
-    setError(null);
-    setLastAction(null);
-
-    try {
-      const variations = await generateClueVariations(originalClue, formData);
-      setClues(prevClues => prevClues.map((c, i) => i === clueIndex ? { ...c, variations, isLoadingVariations: false } : c));
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while getting variations.';
-      setError(errorMessage);
-      setLastAction({ name: 'variations', payload: clueIndex });
-      console.error(err);
-      setClues(prevClues => prevClues.map((c, i) => i === clueIndex ? { ...c, isLoadingVariations: false } : c));
-    }
-  }, [clues, formData]);
-
-  const handleSaveClue = (clueToSave: Clue) => {
-    if (savedClues.some(c => c.clue === clueToSave.clue)) return;
-
-    const newSavedClue: SavedClue = {
-      id: `clue-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      clue: clueToSave.clue,
-      explanation: clueToSave.explanation,
-    };
-
-    const updatedSavedClues = [...savedClues, newSavedClue];
-    setSavedClues(updatedSavedClues);
-    localStorage.setItem('crypticSavedClues', JSON.stringify(updatedSavedClues));
-
-    setClues(prevClues => prevClues.map(c => 
-      c.clue === clueToSave.clue ? { ...c, isSaved: true } : c
-    ));
-  };
-
-  const handleDeleteClue = (clueId: string) => {
-    const clueToDelete = savedClues.find(c => c.id === clueId);
-    if (!clueToDelete) return;
-
-    const updatedSavedClues = savedClues.filter(c => c.id !== clueId);
-    setSavedClues(updatedSavedClues);
-    localStorage.setItem('crypticSavedClues', JSON.stringify(updatedSavedClues));
-
-    setClues(prevClues => prevClues.map(c =>
-      c.clue === clueToDelete.clue ? { ...c, isSaved: false } : c
-    ));
-  };
-  
-  const handleRetry = () => {
-    if (lastAction) {
-        const actionToRetry = lastAction;
-        setError(null);
-        setLastAction(null);
-        
-        switch(actionToRetry.name) {
-            case 'submit':
-                performSubmit();
-                break;
-            case 'definition':
-                performFindDefinition();
-                break;
-            case 'variations':
-                performGetVariations(actionToRetry.payload);
-                break;
-        }
-    }
-  };
-
-  const handleClearError = () => {
-    setError(null);
-    setLastAction(null);
-  };
+  }, [answer, definition, clueType, isToughie, addHistoryEntry]);
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900">
-      <Header 
-        onAboutClick={() => setIsAboutModalOpen(true)}
-        onSavedCluesClick={() => setIsSavedCluesModalOpen(true)}
-      />
-      <main className="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
-        <p className="mb-8 text-center text-stone-600 font-serif italic text-lg">
-          Crafting clues with the wit of Araucaria and the cunning of Enigmatist.
-        </p>
-
-        <InputForm
-          formData={formData}
-          onChange={handleFormChange}
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-          onClear={clearForm}
-          onExample={loadExample}
-          isFindingDefinition={isFindingDefinition}
-          onFindDefinition={performFindDefinition}
-          errors={validationErrors}
-          saveMessage={saveMessage}
-        />
-
-        {isLoading && <Loader />}
-
-        {error && (
-          <ErrorDisplay
-            message={error}
-            onRetry={lastAction ? handleRetry : undefined}
-            onClear={handleClearError}
-          />
-        )}
-
-        {clues.length > 0 && (
-          <div className="mt-10 pt-8 border-t-2 border-dashed border-stone-300">
-            <h2 className="text-3xl font-serif font-bold text-stone-800 mb-6 text-center">Generated Clues</h2>
-            <div className="space-y-6">
-              {clues.map((clue, index) => (
-                <ClueCard 
-                  key={index} 
-                  clue={clue} 
-                  index={index + 1}
-                  onGetVariations={() => performGetVariations(index)}
-                  onSave={() => handleSaveClue(clue)}
+    <div className="min-h-screen bg-gray-900 flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans">
+      <div className="w-full max-w-2xl mx-auto">
+        <Header />
+        <main className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <TextInput
+              id="answer"
+              label="Answer"
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="e.g., PLANET"
+              required
+              maxLength={MAX_ANSWER_LENGTH}
+            />
+            <TextInput
+              id="definition"
+              label="Definition"
+              value={definition}
+              onChange={(e) => setDefinition(e.target.value)}
+              placeholder="e.g., Celestial body"
+              required
+              maxLength={MAX_DEFINITION_LENGTH}
+            />
+            <SelectInput
+              id="clueType"
+              label="Clue Type"
+              value={clueType}
+              onChange={(e) => setClueType(e.target.value as ClueType)}
+              options={clueTypeOptions}
+              infoText={getClueTypeExplanation(clueType)}
+            />
+             <div className="flex items-center justify-end pt-2">
+                <label htmlFor="toughie" className="mr-3 block text-sm font-medium text-gray-300">
+                    Toughie Mode (more challenging)
+                </label>
+                <input
+                    id="toughie"
+                    type="checkbox"
+                    checked={isToughie}
+                    onChange={(e) => setIsToughie(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-500 text-indigo-600 focus:ring-indigo-500 bg-gray-700 cursor-pointer"
                 />
-              ))}
             </div>
-          </div>
-        )}
-      </main>
-      <footer className="text-center py-6 text-sm text-stone-500">
-        <p>Cryptic Clue Craftsman &copy; {new Date().getFullYear()}</p>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? <Spinner /> : 'Generate Clue'}
+            </Button>
+          </form>
+
+          {error && <ErrorDisplay errorMessage={error} onDismiss={() => setError(null)} />}
+          
+          {generatedClue && (
+             <div className="mt-8 pt-6 border-t border-gray-700">
+                <h2 className="text-lg font-semibold text-center text-indigo-300 mb-4">Generated Clue</h2>
+                <ClueDisplay 
+                    clue={generatedClue.clue} 
+                    setter={generatedClue.setter} 
+                    answerLength={answer.length} 
+                />
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-gray-700">
+              <div className="text-center">
+                  <button
+                      onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+                      className="inline-flex items-center space-x-2 text-sm font-medium text-gray-400 hover:text-white transition-colors p-2 rounded-md hover:bg-gray-700/50"
+                      aria-expanded={isHistoryVisible}
+                      aria-controls="history-section"
+                  >
+                      <HistoryIcon />
+                      <span>{isHistoryVisible ? 'Hide History' : 'Show History'} ({history.length})</span>
+                  </button>
+              </div>
+            </div>
+          )}
+
+          {isHistoryVisible && history.length > 0 && (
+              <div id="history-section" className="mt-6">
+                  <HistoryDisplay history={history} onClear={clearHistory} />
+              </div>
+          )}
+
+        </main>
+      </div>
+       <footer className="w-full max-w-2xl mx-auto text-center mt-8 text-gray-500 text-sm">
+        <p>Powered by Gemini. For entertainment purposes only.</p>
       </footer>
-      <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
-      <SavedCluesModal
-        isOpen={isSavedCluesModalOpen}
-        onClose={() => setIsSavedCluesModalOpen(false)}
-        clues={savedClues}
-        onDelete={handleDeleteClue}
-      />
     </div>
   );
 };

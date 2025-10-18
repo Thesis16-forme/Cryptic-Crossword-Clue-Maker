@@ -1,5 +1,15 @@
 {
-  "name": "Cryptic Clue Craftsman",
-  "description": "An application that leverages AI to generate high-quality, Guardian-style cryptic crossword clues based on user-provided answers, definitions, and wordplay structures.",
-  "requestFramePermissions": []
+  "name": "Cryptic Crossword Clue Maker",
+  "description": "An application that uses AI to generate cryptic crossword clues based on a user-provided answer, definition, and clue type.",
+  "requestFramePermissions": [],
+  "setters": [
+    "Araucaria",
+    "Ximenes",
+    "Azed",
+    "Bunthorne",
+    "Pasquale",
+    "Rufus",
+    "Enigmatist",
+    "Torquemada"
+  ]
 }

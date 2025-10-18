@@ -1,40 +1,28 @@
-export type CrypticDevice = 
-  | 'Any'
-  | 'Anagram'
-  | 'Charade'
-  | 'Container'
-  | 'Reversal'
-  | 'Hidden Word'
-  | 'Homophone'
-  | 'Deletion'
-  | 'Double Definition'
-  | 'Cryptic Definition'
-  | '& Lit.'
-  | 'Palindrome';
+export enum ClueType {
+  ANAGRAM = 'ANAGRAM',
+  CHARADE = 'CHARADE',
+  CONTAINER = 'CONTAINER',
+  REVERSAL = 'REVERSAL',
+  HOMOPHONE = 'HOMOPHONE',
+  DOUBLE_DEFINITION = 'DOUBLE_DEFINITION',
+  DELETION = 'DELETION',
+  PALINDROME = 'PALINDROME',
+  HIDDEN_WORD = 'HIDDEN_WORD',
+  LITERAL = 'LITERAL',
+  COMPOSITE = 'COMPOSITE',
+}
 
-export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+export interface GeneratedClue {
+  clue: string;
+  setter: string;
+}
 
-export type Persona = 'Guardian Master Setter' | 'Witty Punster' | 'Concise Ximenean';
-
-export interface FormData {
+export interface HistoryEntry {
+  id: number;
+  clue: string;
   answer: string;
   definition: string;
-  wordplayBreakdown: string;
-  crypticDevice: CrypticDevice;
-  difficulty: Difficulty;
-  persona: Persona;
-}
-
-export interface Clue {
-  clue: string;
-  explanation: string;
-  variations?: Clue[];
-  isLoadingVariations?: boolean;
-  isSaved?: boolean;
-}
-
-export interface SavedClue {
-  id: string;
-  clue: string;
-  explanation: string;
+  clueType: ClueType;
+  timestamp: number;
+  setter?: string;
 }
