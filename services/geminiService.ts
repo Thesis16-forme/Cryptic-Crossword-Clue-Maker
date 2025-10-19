@@ -186,6 +186,18 @@ export const getClueTypeExplanation = (clueType: ClueType): string => {
         return "A letter bank. The clue contains a word or phrase from which all the letters of the answer can be taken, but not necessarily in order or contiguously (unlike a hidden word or anagram). It requires an indicator like 'letters from', 'using characters in', etc. For example, for ANSWER from 'WAREHOUSEMAN', the clue would indicate to pick letters from the longer word.";
     case ClueType.LETTER_PAIR:
         return "A letter pair clue. The answer is formed by taking pairs of letters from words in the clue. Indicators might specify 'first couple', 'final pair', 'central duo', etc. For example, for CART, the clue might define 'CARthorse' and use an indicator like 'opening couple'.";
+    case ClueType.ACRONYM:
+      return "An acronym. Similar to an initialism, but the answer forms a pronounceable word (e.g., RADAR, NATO). The clue takes the first letters from a phrase, often indicated by words like 'initially' or 'at first'. The clue must define the acronym.";
+    case ClueType.BACKRONYM:
+      return "A backronym. A very creative and often humorous clue type where the answer word is treated as if it were an acronym, and the clue provides the phrase it supposedly stands for. For example, for the answer 'FEAR', the clue might be 'Forget everything and run!'.";
+    case ClueType.ANAGRAM_INDICATOR:
+      return "A special request for generating examples of indicator words. Anagram indicators (e.g., 'wild', 'damaged', 'novel', 'mixed-up') are used in clues to signal that letters should be rearranged. Note: This does not generate a full crossword clue.";
+    case ClueType.REVERSAL_INDICATOR:
+      return "A special request for generating examples of indicator words. Reversal indicators (e.g., 'back', 'returns', 'reflects', 'going west') are used in clues to signal that a word should be spelled backwards. Note: This does not generate a full crossword clue.";
+    case ClueType.HIDDEN_INDICATOR:
+      return "A special request for generating examples of indicator words. Hidden indicators (e.g., 'some', 'part of', 'in', 'within') are used in clues to signal that the answer is concealed inside a phrase. Note: This does not generate a full crossword clue.";
+    case ClueType.CONTAINER_INDICATOR:
+      return "A special request for generating examples of indicator words. Container indicators (e.g., 'swallows', 'around', 'holds', 'outside') are used in clues to signal that one word should be placed inside another. Note: This does not generate a full crossword clue.";
     default:
       return "A standard cryptic clue.";
   }
