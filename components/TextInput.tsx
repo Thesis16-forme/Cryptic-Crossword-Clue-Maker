@@ -37,14 +37,14 @@ const TextInput: React.FC<TextInputProps> = ({ label, id, value, maxLength, onSu
           id={id}
           type="text"
           value={value}
-          className={`w-full bg-gray-700 border rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition ${onSuggestClick ? 'pr-12' : ''} ${isHighlighted ? 'highlight-animation' : ''} ${isOverLimit ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-600 focus:ring-indigo-500 focus:border-indigo-500'}`}
+          className={`w-full bg-gray-700 border rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition ${onSuggestClick ? 'pr-12' : ''} ${isHighlighted ? 'highlight-animation' : ''} ${isOverLimit ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-600 focus:ring-indigo-500 focus:border-indigo-500'} ${props.disabled ? 'opacity-70 cursor-not-allowed' : ''}`}
           {...props}
         />
         {onSuggestClick && (
           <button
             type="button"
             onClick={onSuggestClick}
-            disabled={isSuggestLoading || !value}
+            disabled={props.disabled || isSuggestLoading || !value}
             className="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-400 hover:text-indigo-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110"
             aria-label="Suggest synonyms"
             title="Suggest synonyms"

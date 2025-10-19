@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ClueType, GeneratedClue } from './types';
 import { generateClue, getClueTypeExplanation, getSetterExplanation, getMetadata, getSynonyms } from './services/geminiService';
@@ -12,6 +13,7 @@ import HistoryDisplay from './components/HistoryDisplay';
 import { HistoryIcon } from './components/HistoryIcon';
 import ErrorDisplay from './components/ErrorDisplay';
 import SuggestionDisplay from './components/SuggestionDisplay';
+import { InfoIcon } from './components/InfoIcon';
 
 const MAX_ANSWER_LENGTH = 25;
 const MAX_DEFINITION_LENGTH = 80;
@@ -27,6 +29,7 @@ const App: React.FC = () => {
   const [customTheme, setCustomTheme] = useState<string>('');
   const [generatedClue, setGeneratedClue] = useState<GeneratedClue | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isCoolingDown, setIsCoolingDown] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isToughie, setIsToughie] = useState<boolean>(false);
   const [history, addHistoryEntry, clearHistory] = useHistory();
@@ -89,301 +92,292 @@ const App: React.FC = () => {
     const textToSuggest = target === 'answer' ? answer : definition;
     if (!textToSuggest.trim()) return;
 
+    if (isCoolingDown || isSynonymLoading) return;
+
     if (suggestionTarget === target) {
         setSuggestionTarget(null);
         setSynonymSuggestions([]);
         return;
     }
-
+    
     setSuggestionTarget(target);
     setSynonymSuggestions([]);
-    setError(null);
+    setIsSynonymLoading(true);
 
-    // Check cache first
-    if (synonymCache[textToSuggest]) {
-        setSynonymSuggestions(synonymCache[textToSuggest]);
+    const cacheKey = textToSuggest.toLowerCase();
+    if (synonymCache[cacheKey]) {
+        setSynonymSuggestions(synonymCache[cacheKey]);
+        setIsSynonymLoading(false);
         return;
     }
 
-    setIsSynonymLoading(true);
-
     try {
-        const suggestions = await getSynonyms(textToSuggest);
-        setSynonymSuggestions(suggestions);
-        setSynonymCache(prev => ({ ...prev, [textToSuggest]: suggestions }));
-    } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred while fetching suggestions.');
+        const synonyms = await getSynonyms(textToSuggest);
+        setSynonymSuggestions(synonyms);
+        setSynonymCache(prev => ({ ...prev, [cacheKey]: synonyms }));
+    } catch (e) {
+        if (e instanceof Error) {
+            setError(`Synonym Suggestion Error: ${e.message}`);
+        } else {
+            setError("An unknown error occurred while fetching synonyms.");
+        }
         setSuggestionTarget(null);
     } finally {
         setIsSynonymLoading(false);
     }
-  }, [answer, definition, suggestionTarget, synonymCache]);
+  }, [answer, definition, suggestionTarget, isCoolingDown, isSynonymLoading, synonymCache]);
 
-  const handleSuggestionClick = (suggestion: string) => {
-    if (suggestionTarget === 'answer') {
-        setAnswer(suggestion);
-        setHighlightedInput('answer');
-    } else if (suggestionTarget === 'definition') {
-        setDefinition(suggestion);
-        setHighlightedInput('definition');
-    }
-    setSuggestionTarget(null);
-    setSynonymSuggestions([]);
-
-    setTimeout(() => setHighlightedInput(null), 1000);
-  };
-
-  const clueTypeOptions = Object.values(ClueType).map(value => ({
-    value,
-    label: value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-  }));
-
-  const setterOptions = setters.map(s => ({ value: s, label: s }));
-
-  const themeOptions = [
-    { value: 'None', label: 'None' },
-    { value: 'Art', label: 'Art' },
-    { value: 'Business & Finance', label: 'Business & Finance' },
-    { value: 'Food & Drink', label: 'Food & Drink' },
-    { value: 'Geography', label: 'Geography' },
-    { value: 'History', label: 'History' },
-    { value: 'Holidays', label: 'Holidays' },
-    { value: 'Literature', label: 'Literature' },
-    { value: 'Movies', label: 'Movies' },
-    { value: 'Music', label: 'Music' },
-    { value: 'Mythology', label: 'Mythology' },
-    { value: 'Nature', label: 'Nature' },
-    { value: 'Politics', label: 'Politics' },
-    { value: 'Science', label: 'Science' },
-    { value: 'Sports', label: 'Sports' },
-    { value: 'Technology', label: 'Technology' },
-    { value: 'Travel', label: 'Travel' },
-    { value: 'Custom', label: 'Custom...' },
-  ];
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!answer || !definition) {
-      setError('Please provide both an answer and a definition.');
-      return;
-    }
-    if (!setter) {
-        setError('Please select a setter style.');
+    if (isLoading || isCoolingDown) return;
+
+    if (!answer.trim() || !definition.trim()) {
+        setError("Please provide both an answer and a definition.");
         return;
     }
+
     if (answer.length > MAX_ANSWER_LENGTH) {
-        setError(`The answer cannot be longer than ${MAX_ANSWER_LENGTH} characters.`);
+        setError(`Answer cannot exceed ${MAX_ANSWER_LENGTH} characters.`);
         return;
     }
     if (definition.length > MAX_DEFINITION_LENGTH) {
-        setError(`The definition cannot be longer than ${MAX_DEFINITION_LENGTH} characters.`);
+        setError(`Definition cannot exceed ${MAX_DEFINITION_LENGTH} characters.`);
         return;
     }
-    if (theme === 'Custom' && !customTheme.trim()) {
-        setError(`Please enter a custom theme.`);
+    const currentTheme = theme === 'Custom' ? customTheme : theme;
+     if (currentTheme.length > MAX_THEME_LENGTH) {
+        setError(`Theme cannot exceed ${MAX_THEME_LENGTH} characters.`);
         return;
     }
 
     setIsLoading(true);
     setError(null);
     setGeneratedClue(null);
-    setSuggestionTarget(null); // Close any open suggestion boxes
-
-    const finalTheme = theme === 'Custom' ? customTheme : theme;
-    
-    let finalClueType = clueType;
-    if (clueType === ClueType.ANY) {
-      const allClueTypes = Object.values(ClueType).filter(ct => ct !== ClueType.ANY);
-      finalClueType = allClueTypes[Math.floor(Math.random() * allClueTypes.length)];
-    }
-
+    handleDismissSuggestions();
 
     try {
-      const clueObject = await generateClue(answer, definition, finalClueType, isToughie, setter, finalTheme);
-      setGeneratedClue(clueObject);
+      const result = await generateClue(answer, definition, clueType, isToughie, setter, currentTheme);
+      setGeneratedClue(result);
       addHistoryEntry({
-        clue: clueObject.clue,
-        answer,
-        definition,
-        clueType: finalClueType,
-        setter: clueObject.setter,
-        theme: finalTheme.toLowerCase() !== 'none' ? finalTheme : undefined,
+        clue: result.clue,
+        answer: answer,
+        definition: definition,
+        clueType: clueType,
+        setter: result.setter,
+        theme: (currentTheme && currentTheme !== 'None') ? currentTheme : undefined
       });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("An unknown error occurred while fetching the clue.");
+      }
     } finally {
       setIsLoading(false);
+      setIsCoolingDown(true);
+      setTimeout(() => setIsCoolingDown(false), 2000); // 2 second cooldown
     }
-  }, [answer, definition, clueType, isToughie, setter, theme, customTheme, addHistoryEntry]);
+  };
+
+  const clueTypeOptions = Object.values(ClueType).map(ct => ({
+    value: ct,
+    label: ct.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }));
+
+  const setterOptions = setters.map(s => ({ value: s, label: s }));
+
+  const themeOptions = [
+    { value: 'None', label: 'None' },
+    { value: 'Food', label: 'Food' },
+    { value: 'Science', label: 'Science' },
+    { value: 'History', label: 'History' },
+    { value: 'Music', label: 'Music' },
+    { value: 'Sport', label: 'Sport' },
+    { value: 'Politics', label: 'Politics' },
+    { value: 'Literature', label: 'Literature' },
+    { value: 'Custom', label: 'Custom...' }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans">
-      <div className="w-full max-w-2xl mx-auto">
+    <div className="bg-gray-900 min-h-screen text-gray-100 font-sans p-4 sm:p-6 lg:p-8">
+      <div className="max-w-2xl mx-auto">
         <Header />
-        <main className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div ref={answerSuggestionRef}>
-              <TextInput
-                id="answer"
-                label="Answer"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="e.g., PLANET"
-                required
-                maxLength={MAX_ANSWER_LENGTH}
-                onSuggestClick={() => handleSuggestSynonyms('answer')}
-                isSuggestLoading={isSynonymLoading && suggestionTarget === 'answer'}
-                isHighlighted={highlightedInput === 'answer'}
-              />
-              {suggestionTarget === 'answer' && (
-                  <SuggestionDisplay
-                      isLoading={isSynonymLoading}
-                      suggestions={synonymSuggestions}
-                      onSuggestionClick={handleSuggestionClick}
-                      onDismiss={handleDismissSuggestions}
-                      targetLabel={answer}
-                  />
-              )}
-            </div>
-            <div ref={definitionSuggestionRef}>
-              <TextInput
-                id="definition"
-                label="Definition"
-                value={definition}
-                onChange={(e) => setDefinition(e.target.value)}
-                placeholder="e.g., Celestial body"
-                required
-                maxLength={MAX_DEFINITION_LENGTH}
-                onSuggestClick={() => handleSuggestSynonyms('definition')}
-                isSuggestLoading={isSynonymLoading && suggestionTarget === 'definition'}
-                isHighlighted={highlightedInput === 'definition'}
-              />
-               {suggestionTarget === 'definition' && (
-                  <SuggestionDisplay
-                      isLoading={isSynonymLoading}
-                      suggestions={synonymSuggestions}
-                      onSuggestionClick={handleSuggestionClick}
-                      onDismiss={handleDismissSuggestions}
-                      targetLabel={definition}
-                  />
-              )}
-            </div>
-            <SelectInput
-              id="clueType"
-              label="Clue Type"
-              value={clueType}
-              onChange={(e) => setClueType(e.target.value as ClueType)}
-              options={clueTypeOptions}
-              infoText={getClueTypeExplanation(clueType)}
-            />
-            <SelectInput
-              id="setter"
-              label="Setter Style"
-              value={setter}
-              onChange={(e) => setSetter(e.target.value)}
-              options={setterOptions}
-              infoText={getSetterExplanation(setter)}
-              getOptionTitle={getSetterExplanation}
-            />
-            <SelectInput
-                id="theme"
-                label="Optional Theme"
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
-                options={themeOptions}
-                infoText="Select a theme to influence the clue's vocabulary and surface reading."
-            />
-            {theme === 'Custom' && (
-                <div className="animate-fade-in">
-                    <TextInput
-                        id="customTheme"
-                        label="Custom Theme"
-                        value={customTheme}
-                        onChange={(e) => setCustomTheme(e.target.value)}
-                        placeholder="e.g., Ancient Rome, 90s Pop Culture"
-                        maxLength={MAX_THEME_LENGTH}
+
+        <div className="relative mt-8">
+          <button
+            onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+            className="absolute -top-12 right-0 flex items-center space-x-2 text-sm text-indigo-300 hover:text-indigo-200 transition-all duration-200 transform hover:scale-105"
+            aria-label={isHistoryVisible ? "Hide history" : "Show history"}
+            title={isHistoryVisible ? "Hide history" : "Show history"}
+          >
+            <HistoryIcon />
+            <span>History</span>
+          </button>
+        </div>
+
+        {isHistoryVisible ? (
+          <div className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
+            <HistoryDisplay history={history} onClear={clearHistory} />
+          </div>
+        ) : (
+          <main className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div ref={answerSuggestionRef}>
+                <TextInput
+                  label="Answer"
+                  id="answer"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  maxLength={MAX_ANSWER_LENGTH}
+                  placeholder="e.g., LISTEN"
+                  disabled={isLoading}
+                  onSuggestClick={() => handleSuggestSynonyms('answer')}
+                  isSuggestLoading={isSynonymLoading && suggestionTarget === 'answer'}
+                  isHighlighted={highlightedInput === 'answer'}
+                />
+                {suggestionTarget === 'answer' && (
+                    <SuggestionDisplay
+                        suggestions={synonymSuggestions}
+                        isLoading={isSynonymLoading}
+                        onSuggestionClick={(suggestion) => {
+                            setAnswer(suggestion);
+                            setHighlightedInput('answer');
+                            setTimeout(() => setHighlightedInput(null), 1000);
+                            handleDismissSuggestions();
+                        }}
+                        onDismiss={handleDismissSuggestions}
+                        targetLabel={answer}
                     />
-                    <style>{`
-                      .animate-fade-in {
-                        animation: fadeIn 0.3s ease-in-out;
-                      }
-                      @keyframes fadeIn {
-                        from { opacity: 0; transform: translateY(-10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                      }
-                    `}</style>
-                </div>
-            )}
-             <div className="flex items-center justify-end pt-2">
-                <label htmlFor="toughie" className="mr-3 block text-sm font-medium text-gray-300">
-                    Toughie Mode (more challenging)
+                )}
+              </div>
+             
+              <div ref={definitionSuggestionRef}>
+                <TextInput
+                  label="Definition"
+                  id="definition"
+                  value={definition}
+                  onChange={(e) => setDefinition(e.target.value)}
+                  maxLength={MAX_DEFINITION_LENGTH}
+                  placeholder="e.g., Pay attention"
+                  disabled={isLoading}
+                   onSuggestClick={() => handleSuggestSynonyms('definition')}
+                  isSuggestLoading={isSynonymLoading && suggestionTarget === 'definition'}
+                  isHighlighted={highlightedInput === 'definition'}
+                />
+                 {suggestionTarget === 'definition' && (
+                    <SuggestionDisplay
+                        suggestions={synonymSuggestions}
+                        isLoading={isSynonymLoading}
+                        onSuggestionClick={(suggestion) => {
+                            setDefinition(suggestion);
+                            setHighlightedInput('definition');
+                            setTimeout(() => setHighlightedInput(null), 1000);
+                            handleDismissSuggestions();
+                        }}
+                        onDismiss={handleDismissSuggestions}
+                        targetLabel={definition}
+                    />
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SelectInput
+                  label="Clue Type"
+                  id="clueType"
+                  value={clueType}
+                  onChange={(e) => setClueType(e.target.value as ClueType)}
+                  options={clueTypeOptions}
+                  infoText={getClueTypeExplanation(clueType)}
+                  getOptionTitle={(val) => getClueTypeExplanation(val as ClueType)}
+                  disabled={isLoading}
+                />
+                <SelectInput
+                  label="Setter Style"
+                  id="setter"
+                  value={setter}
+                  onChange={(e) => setSetter(e.target.value)}
+                  options={setterOptions}
+                  infoText={getSetterExplanation(setter)}
+                  getOptionTitle={getSetterExplanation}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <SelectInput
+                    label="Theme (Optional)"
+                    id="theme"
+                    value={theme}
+                    onChange={(e) => setTheme(e.target.value)}
+                    options={themeOptions}
+                    disabled={isLoading}
+                    infoText="Optionally, guide the clue's surface reading with a theme."
+                />
+                {theme === 'Custom' && (
+                    <div className="mt-4">
+                        <TextInput
+                            label="Custom Theme"
+                            id="customTheme"
+                            value={customTheme}
+                            onChange={(e) => setCustomTheme(e.target.value)}
+                            maxLength={MAX_THEME_LENGTH}
+                            placeholder="Enter your custom theme"
+                            disabled={isLoading}
+                        />
+                    </div>
+                )}
+              </div>
+              
+              <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-md">
+                <label htmlFor="toughie" className="flex items-center cursor-pointer">
+                  <span className="text-sm font-medium text-gray-300 mr-3">Make it a 'Toughie'</span>
+                  <div className="relative group" title="Increase clue difficulty significantly. Uses more obscure vocabulary, subtler indicators, and more complex wordplay.">
+                    <InfoIcon />
+                  </div>
                 </label>
-                <input
-                    id="toughie"
-                    type="checkbox"
-                    checked={isToughie}
-                    onChange={(e) => setIsToughie(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-500 text-indigo-600 focus:ring-indigo-500 bg-gray-700 cursor-pointer"
-                />
-            </div>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? <Spinner /> : 'Generate Clue'}
-            </Button>
-          </form>
-
-          {error && <ErrorDisplay errorMessage={error} onDismiss={() => setError(null)} />}
-          
-          {generatedClue && (
-             <div className="mt-8 pt-6 border-t border-gray-700 animate-clue-display">
-                <h2 className="text-lg font-semibold text-center text-indigo-300 mb-4">Generated Clue</h2>
-                <ClueDisplay 
-                    clue={generatedClue.clue} 
-                    setter={generatedClue.setter} 
-                    answerLength={answer.length} 
-                />
-            </div>
-          )}
-
-          {history.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-gray-700">
-              <div className="text-center">
-                  <button
-                      onClick={() => setIsHistoryVisible(!isHistoryVisible)}
-                      className="inline-flex items-center space-x-2 text-sm font-medium text-gray-400 hover:text-white transition-all duration-200 transform hover:scale-105 p-2 rounded-md hover:bg-gray-700/50"
-                      aria-expanded={isHistoryVisible}
-                      aria-controls="history-section"
-                      title={isHistoryVisible ? 'Hide History' : 'Show History'}
-                  >
-                      <HistoryIcon />
-                      <span>{isHistoryVisible ? 'Hide History' : 'Show History'} ({history.length})</span>
-                  </button>
+                <div className="relative">
+                    <input
+                        type="checkbox"
+                        id="toughie"
+                        checked={isToughie}
+                        onChange={(e) => setIsToughie(e.target.checked)}
+                        disabled={isLoading}
+                        className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </div>
               </div>
-            </div>
-          )}
 
-          {isHistoryVisible && history.length > 0 && (
-              <div id="history-section" className="mt-6">
-                  <HistoryDisplay history={history} onClear={clearHistory} />
+              <div className="pt-2">
+                <Button type="submit" disabled={isLoading || isCoolingDown || !answer.trim() || !definition.trim()}>
+                  {isLoading ? <Spinner /> : isCoolingDown ? 'Cooling down...' : 'Generate Clue'}
+                </Button>
               </div>
-          )}
+            </form>
 
-        </main>
+            {error && (
+              <ErrorDisplay errorMessage={error} onDismiss={() => setError(null)} />
+            )}
+
+            {isLoading && (
+              <div className="mt-6 text-center">
+                <p className="text-indigo-300 animate-pulse">Crafting your clue...</p>
+              </div>
+            )}
+            
+            {generatedClue && !isLoading && (
+              <div className="mt-8 pt-6 border-t border-gray-700">
+                <h2 className="text-lg font-semibold text-indigo-300 mb-4 text-center">Your Generated Clue</h2>
+                <ClueDisplay clue={generatedClue.clue} setter={generatedClue.setter} answerLength={answer.replace(/\s/g, '').length} />
+              </div>
+            )}
+          </main>
+        )}
+
+        <footer className="text-center mt-8 text-xs text-gray-500">
+            <p>Powered by Google's Gemini API. <a href="/about.html" className="text-indigo-400 hover:underline">About this tool</a>.</p>
+        </footer>
       </div>
-       <footer className="w-full max-w-2xl mx-auto text-center mt-8 text-gray-500 text-sm">
-        <p>Powered by Gemini. For entertainment purposes only.</p>
-        <p className="mt-2">
-          <a href="/about.html" className="underline hover:text-gray-300 transition-colors">About this App</a>
-        </p>
-      </footer>
-      <style>{`
-        .animate-clue-display {
-          animation: clue-fade-in 0.6s ease-in-out;
-        }
-        @keyframes clue-fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 };
