@@ -68,7 +68,10 @@ export const useHistory = (): [HistoryEntry[], (entry: Omit<HistoryEntry, 'id' |
     try {
       const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
       if (storedHistory) {
-        setHistory(JSON.parse(storedHistory));
+        const parsedHistory: HistoryEntry[] = JSON.parse(storedHistory);
+        // Sort by timestamp in descending order (most recent first)
+        parsedHistory.sort((a, b) => b.timestamp - a.timestamp);
+        setHistory(parsedHistory);
       } else {
         setHistory(exampleHistoryEntries);
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(exampleHistoryEntries));

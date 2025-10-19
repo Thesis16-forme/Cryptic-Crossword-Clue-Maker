@@ -17,6 +17,7 @@ import { InfoIcon } from './components/InfoIcon';
 const MAX_ANSWER_LENGTH = 25;
 const MAX_DEFINITION_LENGTH = 80;
 const MAX_THEME_LENGTH = 50;
+const MAX_API_CALLS_PER_MINUTE = 8; // Client-side limit to prevent spamming
 
 const App: React.FC = () => {
   const [answer, setAnswer] = useState<string>('');
@@ -42,10 +43,26 @@ const App: React.FC = () => {
   const [suggestionTarget, setSuggestionTarget] = useState<'answer' | 'definition' | null>(null);
   const [synonymCache, setSynonymCache] = useState<Record<string, string[]>>({});
   const [highlightedInput, setHighlightedInput] = useState<'answer' | 'definition' | null>(null);
+  
+  // State for client-side rate limiting
+  const [apiCallTimestamps, setApiCallTimestamps] = useState<number[]>([]);
 
 
   const answerSuggestionRef = useRef<HTMLDivElement>(null);
   const definitionSuggestionRef = useRef<HTMLDivElement>(null);
+
+  const checkRateLimit = useCallback(() => {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    const recentCalls = apiCallTimestamps.filter(ts => ts > oneMinuteAgo);
+
+    if (recentCalls.length >= MAX_API_CALLS_PER_MINUTE) {
+        setError(`You're making requests too quickly. Please wait a moment. (Client limit: ${MAX_API_CALLS_PER_MINUTE}/min)`);
+        return false;
+    }
+    setApiCallTimestamps([...recentCalls, now]);
+    return true;
+  }, [apiCallTimestamps]);
 
 
   useEffect(() => {
@@ -97,6 +114,8 @@ const App: React.FC = () => {
 
     if (isCoolingDown || isSynonymLoading) return;
 
+    if (!checkRateLimit()) return;
+
     if (suggestionTarget === target) {
         setSuggestionTarget(null);
         setSynonymSuggestions([]);
@@ -106,6 +125,7 @@ const App: React.FC = () => {
     setSuggestionTarget(target);
     setSynonymSuggestions([]);
     setIsSynonymLoading(true);
+    setError(null);
 
     const cacheKey = textToSuggest.toLowerCase();
     if (synonymCache[cacheKey]) {
@@ -128,7 +148,7 @@ const App: React.FC = () => {
     } finally {
         setIsSynonymLoading(false);
     }
-  }, [answer, definition, suggestionTarget, isCoolingDown, isSynonymLoading, synonymCache]);
+  }, [answer, definition, suggestionTarget, isCoolingDown, isSynonymLoading, synonymCache, checkRateLimit]);
   
   const resetForm = useCallback(() => {
     setAnswer('');
@@ -141,9 +161,11 @@ const App: React.FC = () => {
     setSynonymSuggestions([]);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading || isCoolingDown) return;
+
+    if (!checkRateLimit()) return;
 
     if (!answer.trim() || !definition.trim()) {
         setError("Please provide both an answer and a definition.");
@@ -171,7 +193,6 @@ const App: React.FC = () => {
 
     try {
       const result = await generateClue(answer, definition, clueType, isToughie, setter, currentTheme);
-      const answerBeforeReset = answer;
       setGeneratedClue(result);
       addHistoryEntry({
         clue: result.clue,
@@ -194,7 +215,11 @@ const App: React.FC = () => {
       setIsCoolingDown(true);
       setTimeout(() => setIsCoolingDown(false), 2000); // 2 second cooldown
     }
-  };
+  }, [
+    isLoading, isCoolingDown, checkRateLimit, answer, definition, theme, 
+    customTheme, clueType, isToughie, setter, handleDismissSuggestions, 
+    addHistoryEntry, resetForm
+  ]);
 
   const clueTypeOptions = Object.values(ClueType).map(ct => ({
     value: ct,
@@ -212,6 +237,9 @@ const App: React.FC = () => {
     { value: 'Sport', label: 'Sport' },
     { value: 'Politics', label: 'Politics' },
     { value: 'Literature', label: 'Literature' },
+    { value: 'Mythology', label: 'Mythology' },
+    { value: 'Technology', label: 'Technology' },
+    { value: 'Travel', label: 'Travel' },
     { value: 'Custom', label: 'Custom...' }
   ];
 
