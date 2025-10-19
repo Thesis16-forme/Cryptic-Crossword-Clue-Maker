@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { CopyIcon } from './CopyIcon';
+import { CopyIcon } from '../CopyIcon';
 
 interface ClueDisplayProps {
   clue: string;
