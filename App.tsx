@@ -129,6 +129,17 @@ const App: React.FC = () => {
         setIsSynonymLoading(false);
     }
   }, [answer, definition, suggestionTarget, isCoolingDown, isSynonymLoading, synonymCache]);
+  
+  const resetForm = useCallback(() => {
+    setAnswer('');
+    setDefinition('');
+    setClueType(ClueType.ANY);
+    setIsToughie(false);
+    setTheme('None');
+    setCustomTheme('');
+    setSuggestionTarget(null);
+    setSynonymSuggestions([]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +171,7 @@ const App: React.FC = () => {
 
     try {
       const result = await generateClue(answer, definition, clueType, isToughie, setter, currentTheme);
+      const answerBeforeReset = answer;
       setGeneratedClue(result);
       addHistoryEntry({
         clue: result.clue,
@@ -169,6 +181,8 @@ const App: React.FC = () => {
         setter: result.setter,
         theme: (currentTheme && currentTheme !== 'None') ? currentTheme : undefined
       });
+      // Reset form for next entry
+      resetForm();
     } catch (e) {
       if (e instanceof Error) {
         setError(e.message);
@@ -393,7 +407,7 @@ const App: React.FC = () => {
                 {generatedClue && !isLoading && (
                   <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
                     <h2 className="text-lg font-semibold text-[var(--color-primary)] mb-4 text-center">Your Generated Clue</h2>
-                    <ClueDisplay clue={generatedClue.clue} setter={generatedClue.setter} answerLength={answer.replace(/\s/g, '').length} />
+                    <ClueDisplay clue={generatedClue.clue} setter={generatedClue.setter} answerLength={generatedClue.answer.replace(/\s/g, '').length} />
                   </div>
                 )}
 

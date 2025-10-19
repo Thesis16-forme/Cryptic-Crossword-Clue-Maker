@@ -296,7 +296,8 @@ You MUST incorporate the following theme into the clue's surface reading or word
     Provide ONLY a valid JSON object in the following format. Do not add any preamble, explanation, or markdown backticks.
     {
       "clue": "The final cryptic clue text.",
-      "setter": "${setter}"
+      "setter": "${setter}",
+      "answer": "${answer}"
     }
   `;
 
@@ -320,7 +321,7 @@ You MUST incorporate the following theme into the clue's surface reading or word
 
     try {
         const parsedResponse: GeneratedClue = JSON.parse(text);
-        if (!parsedResponse.clue || !parsedResponse.setter) {
+        if (!parsedResponse.clue || !parsedResponse.setter || !parsedResponse.answer) {
             throw new Error("AI response is missing required fields (invalid response).");
         }
         return parsedResponse;

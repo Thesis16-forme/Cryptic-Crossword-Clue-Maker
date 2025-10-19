@@ -27,6 +27,7 @@ export enum ClueType {
 export interface GeneratedClue {
   clue: string;
   setter: string;
+  answer: string;
 }
 
 export interface HistoryEntry {
