@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cryptic Crossword Clue Maker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Merriweather:wght@700&display=swap" rel="stylesheet">
+    <script type="importmap">
 {
   "imports": {
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
@@ -15,8 +18,27 @@
   }
 }
 </script>
-</head>
-  <body class="bg-gray-100 text-gray-800">
+    <style>
+      :root {
+        --color-bg: #F8F9FA;
+        --color-surface: #FFFFFF;
+        --color-text-primary: #212529;
+        --color-text-secondary: #6C757D;
+        --color-primary: #343A40;
+        --color-accent: #495867;
+        --color-accent-hover: #577399;
+        --color-border: #DEE2E6;
+        --font-serif: 'Merriweather', serif;
+        --font-sans: 'Lato', sans-serif;
+      }
+      body {
+        background-color: var(--color-bg);
+        color: var(--color-text-primary);
+        font-family: var(--font-sans);
+      }
+    </style>
+  </head>
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

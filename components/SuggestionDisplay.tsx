@@ -12,12 +12,12 @@ interface SuggestionDisplayProps {
 
 const SuggestionDisplay: React.FC<SuggestionDisplayProps> = ({ suggestions, isLoading, onSuggestionClick, onDismiss, targetLabel }) => {
   return (
-    <div className="mt-2 p-4 bg-gray-700/80 border border-gray-600 rounded-lg animate-fade-in relative backdrop-blur-sm">
+    <div className="mt-2 p-4 bg-slate-50 border border-[var(--color-border)] rounded-lg animate-fade-in relative">
       <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-semibold text-indigo-300">Suggestions for "{targetLabel}"</h3>
+        <h3 className="text-sm font-semibold text-[var(--color-accent)]">Suggestions for "{targetLabel}"</h3>
         <button
           onClick={onDismiss}
-          className="p-1 rounded-full text-gray-400 hover:bg-gray-600/70 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 transform hover:scale-110"
+          className="p-1 rounded-full text-gray-500 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all duration-200 transform hover:scale-110"
           aria-label="Close suggestions"
           title="Close suggestions"
         >
@@ -37,14 +37,14 @@ const SuggestionDisplay: React.FC<SuggestionDisplayProps> = ({ suggestions, isLo
                 <button
                   key={index}
                   onClick={() => onSuggestionClick(suggestion)}
-                  className="px-3 py-1 bg-gray-600 text-gray-200 text-sm rounded-full hover:bg-indigo-500 hover:text-white transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  className="px-3 py-1 bg-slate-200 text-slate-700 text-sm rounded-full hover:bg-[var(--color-accent)] hover:text-white transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
                 >
                   {suggestion}
                 </button>
               ))}
             </div>
           ) : (
-            <p className="text-gray-400 text-sm text-center py-4">No suggestions found.</p>
+            <p className="text-slate-500 text-sm text-center py-4">No suggestions found.</p>
           )}
         </>
       )}

@@ -14,16 +14,16 @@ const TextInput: React.FC<TextInputProps> = ({ label, id, value, maxLength, onSu
   const isOverLimit = maxLength ? currentLength > maxLength : false;
 
   const getCounterColor = () => {
-    if (!maxLength) return 'text-gray-500';
-    if (isOverLimit) return 'text-red-400';
-    if (currentLength > maxLength * 0.9) return 'text-yellow-400';
-    return 'text-gray-500';
+    if (!maxLength) return 'text-gray-400';
+    if (isOverLimit) return 'text-red-500';
+    if (currentLength > maxLength * 0.9) return 'text-amber-500';
+    return 'text-gray-400';
   };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-300">
+        <label htmlFor={id} className="block text-sm font-medium text-[var(--color-text-secondary)]">
           {label}
         </label>
         {maxLength && (
@@ -37,7 +37,7 @@ const TextInput: React.FC<TextInputProps> = ({ label, id, value, maxLength, onSu
           id={id}
           type="text"
           value={value}
-          className={`w-full bg-gray-700 border rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition ${onSuggestClick ? 'pr-12' : ''} ${isHighlighted ? 'highlight-animation' : ''} ${isOverLimit ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-600 focus:ring-indigo-500 focus:border-indigo-500'} ${props.disabled ? 'opacity-70 cursor-not-allowed' : ''}`}
+          className={`w-full bg-white border rounded-md shadow-sm py-3 px-4 text-[var(--color-text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 transition ${onSuggestClick ? 'pr-12' : ''} ${isHighlighted ? 'highlight-animation' : ''} ${isOverLimit ? 'border-red-400 focus:ring-red-400 focus:border-red-400' : 'border-[var(--color-border)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]'} ${props.disabled ? 'opacity-70 cursor-not-allowed bg-gray-50' : ''}`}
           {...props}
         />
         {onSuggestClick && (
@@ -45,7 +45,7 @@ const TextInput: React.FC<TextInputProps> = ({ label, id, value, maxLength, onSu
             type="button"
             onClick={onSuggestClick}
             disabled={props.disabled || isSuggestLoading || !value}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-400 hover:text-indigo-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110"
+            className="absolute inset-y-0 right-0 flex items-center pr-4 text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110"
             aria-label="Suggest synonyms"
             title="Suggest synonyms"
           >
@@ -66,9 +66,9 @@ const TextInput: React.FC<TextInputProps> = ({ label, id, value, maxLength, onSu
                 animation: highlight-pulse 1s ease-out;
             }
             @keyframes highlight-pulse {
-                0% { box-shadow: 0 0 0 0px rgba(129, 140, 248, 0.7); }
-                50% { box-shadow: 0 0 0 4px rgba(129, 140, 248, 0); }
-                100% { box-shadow: 0 0 0 0px rgba(129, 140, 248, 0); }
+                0% { box-shadow: 0 0 0 0px rgba(73, 88, 103, 0.5); }
+                50% { box-shadow: 0 0 0 4px rgba(73, 88, 103, 0); }
+                100% { box-shadow: 0 0 0 0px rgba(73, 88, 103, 0); }
             }
         `}</style>
       )}

@@ -54,19 +54,19 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-indigo-300">Clue History</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-primary)]">Clue History</h2>
         <div className="flex items-center space-x-2">
             <button
               onClick={handleCopyAll}
               disabled={history.length === 0}
-              className="relative flex items-center space-x-2 text-sm text-indigo-300 hover:text-indigo-200 transition-all duration-200 transform hover:scale-105 bg-indigo-900/50 hover:bg-indigo-900/80 px-3 py-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="relative flex items-center space-x-2 text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-all duration-200 transform hover:scale-105 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-[var(--color-border)]"
               aria-label="Copy all clues to clipboard"
               title="Copy all clues to clipboard"
             >
               <CopyAllIcon />
               <span>Copy All</span>
                {isAllCopied && (
-                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded-md whitespace-nowrap">
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-[var(--color-primary)] text-white text-xs px-2 py-1 rounded-md whitespace-nowrap">
                   Copied!
                 </span>
               )}
@@ -78,34 +78,34 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
         {history.map((entry, index) => (
           <div 
             key={entry.id} 
-            className="bg-gray-700/50 p-4 rounded-lg border border-gray-600 animate-fade-in"
+            className="bg-slate-50 p-4 rounded-lg border border-[var(--color-border)] animate-fade-in"
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            <p className="text-lg text-gray-200 font-mono">
-              {entry.clue} <span className="text-gray-400">({entry.answer.length})</span>
+            <p className="text-lg text-[var(--color-text-primary)] font-mono">
+              {entry.clue} <span className="text-[var(--color-text-secondary)]">({entry.answer.length})</span>
             </p>
             {entry.setter && (
-              <p className="text-xs text-indigo-300 italic mt-1">Style: {entry.setter}</p>
+              <p className="text-xs text-[var(--color-accent)] italic mt-1">Style: {entry.setter}</p>
             )}
-            <div className="mt-3 pt-3 border-t border-gray-600 text-sm text-gray-400 space-y-1">
+            <div className="mt-3 pt-3 border-t border-[var(--color-border)] text-sm text-[var(--color-text-secondary)] space-y-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                    <p><span className="font-semibold text-gray-300">Answer:</span> {entry.answer.toUpperCase()}</p>
-                    <p><span className="font-semibold text-gray-300">Type:</span> {formatClueType(entry.clueType)}</p>
+                    <p><span className="font-semibold text-[var(--color-text-primary)]">Answer:</span> {entry.answer.toUpperCase()}</p>
+                    <p><span className="font-semibold text-[var(--color-text-primary)]">Type:</span> {formatClueType(entry.clueType)}</p>
                     {entry.theme && (
-                        <p className="sm:col-span-2"><span className="font-semibold text-gray-300">Theme:</span> {entry.theme}</p>
+                        <p className="sm:col-span-2"><span className="font-semibold text-[var(--color-text-primary)]">Theme:</span> {entry.theme}</p>
                     )}
                 </div>
-                <p><span className="font-semibold text-gray-300">Definition:</span> {entry.definition}</p>
+                <p><span className="font-semibold text-[var(--color-text-primary)]">Definition:</span> {entry.definition}</p>
             </div>
-            <p className="text-xs text-gray-500 mt-3 text-right">{formatTimestamp(entry.timestamp)}</p>
+            <p className="text-xs text-gray-400 mt-3 text-right">{formatTimestamp(entry.timestamp)}</p>
           </div>
         ))}
       </div>
 
-      <div className="pt-4 mt-2 border-t border-gray-700 flex justify-center">
+      <div className="pt-4 mt-2 border-t border-[var(--color-border)] flex justify-center">
         <button
           onClick={onClear}
-          className="flex items-center space-x-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 transform hover:scale-105 bg-red-900/50 hover:bg-red-900/80 px-4 py-2 rounded-md"
+          className="flex items-center space-x-2 text-sm text-red-600 hover:text-red-700 transition-all duration-200 transform hover:scale-105 bg-red-100 hover:bg-red-200 px-4 py-2 rounded-md border border-red-200"
           aria-label="Clear all history"
           title="Clear all history"
         >
@@ -127,15 +127,15 @@ const HistoryDisplay: React.FC<HistoryDisplayProps> = ({ history, onClear }) => 
             width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #2d3748; /* gray-800 */
+            background: #e9ecef;
             border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #4a5568; /* gray-600 */
+            background: #ced4da;
             border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #718096; /* gray-500 */
+            background: #adb5bd;
         }
       `}</style>
     </div>

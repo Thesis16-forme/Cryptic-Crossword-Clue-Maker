@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ClueType, GeneratedClue } from './types';
 import { generateClue, getClueTypeExplanation, getSetterExplanation, getMetadata, getSynonyms } from './services/geminiService';
@@ -199,29 +198,31 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="bg-gray-900 min-h-screen text-gray-100 font-sans p-4 sm:p-6 lg:p-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+      <div className="max-w-3xl mx-auto">
         <Header />
 
-        <div className="relative mt-8">
-          <button
-            onClick={() => setIsHistoryVisible(!isHistoryVisible)}
-            className="absolute -top-12 right-0 flex items-center space-x-2 text-sm text-indigo-300 hover:text-indigo-200 transition-all duration-200 transform hover:scale-105"
-            aria-label={isHistoryVisible ? "Hide history" : "Show history"}
-            title={isHistoryVisible ? "Hide history" : "Show history"}
-          >
-            <HistoryIcon />
-            <span>History</span>
-          </button>
-        </div>
+        <div className="relative mt-10">
+          <main className="bg-[var(--color-surface)] rounded-xl shadow-lg p-6 sm:p-10 border border-[var(--color-border)]">
+            <div className="flex justify-between items-start mb-6">
+                <h2 className="text-xl font-bold text-[var(--color-primary)]">Clue Details</h2>
+                <button
+                    onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+                    className="flex items-center space-x-2 text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors duration-200"
+                    aria-label={isHistoryVisible ? "Hide history" : "Show history"}
+                    title={isHistoryVisible ? "Hide history" : "Show history"}
+                  >
+                    <HistoryIcon />
+                    <span>{isHistoryVisible ? 'Hide History' : 'Show History'}</span>
+                  </button>
+            </div>
 
-        {isHistoryVisible ? (
-          <div className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
-            <HistoryDisplay history={history} onClear={clearHistory} />
-          </div>
-        ) : (
-          <main className="mt-8 bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-70 border border-gray-700">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {isHistoryVisible ? (
+              <div className="animate-fade-in">
+                <HistoryDisplay history={history} onClear={clearHistory} />
+              </div>
+            ) : (
+             <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
               <div ref={answerSuggestionRef}>
                 <TextInput
                   label="Answer"
@@ -328,11 +329,18 @@ const App: React.FC = () => {
                 )}
               </div>
               
-              <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-md">
+              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-md border border-[var(--color-border)]">
                 <label htmlFor="toughie" className="flex items-center cursor-pointer">
-                  <span className="text-sm font-medium text-gray-300 mr-3">Make it a 'Toughie'</span>
-                  <div className="relative group" title="Increase clue difficulty significantly. Uses more obscure vocabulary, subtler indicators, and more complex wordplay.">
-                    <InfoIcon />
+                  <span className="text-sm font-medium text-[var(--color-text-primary)] mr-3">Make it a 'Toughie'</span>
+                  <div className="relative group">
+                     <InfoIcon />
+                     <div
+                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 invisible group-hover:visible pointer-events-none z-10"
+                        role="tooltip"
+                    >
+                        <p className="font-bold mb-1 text-[var(--color-text-primary)]">'Toughie' Mode</p>
+                        Increase clue difficulty significantly. Uses more obscure vocabulary, subtler indicators, and more complex wordplay.
+                    </div>
                   </div>
                 </label>
                 <div className="relative">
@@ -344,7 +352,7 @@ const App: React.FC = () => {
                         disabled={isLoading}
                         className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--color-accent)] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-accent)]"></div>
                 </div>
               </div>
 
@@ -354,28 +362,39 @@ const App: React.FC = () => {
                 </Button>
               </div>
             </form>
-
+             )}
+            
             {error && (
               <ErrorDisplay errorMessage={error} onDismiss={() => setError(null)} />
             )}
 
-            {isLoading && (
+            {isLoading && !generatedClue && (
               <div className="mt-6 text-center">
-                <p className="text-indigo-300 animate-pulse">Crafting your clue...</p>
+                <p className="text-[var(--color-accent)] animate-pulse">Crafting your clue...</p>
               </div>
             )}
             
             {generatedClue && !isLoading && (
-              <div className="mt-8 pt-6 border-t border-gray-700">
-                <h2 className="text-lg font-semibold text-indigo-300 mb-4 text-center">Your Generated Clue</h2>
+              <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
+                <h2 className="text-lg font-semibold text-[var(--color-primary)] mb-4 text-center">Your Generated Clue</h2>
                 <ClueDisplay clue={generatedClue.clue} setter={generatedClue.setter} answerLength={answer.replace(/\s/g, '').length} />
               </div>
             )}
-          </main>
-        )}
 
-        <footer className="text-center mt-8 text-xs text-gray-500">
-            <p>Powered by Google's Gemini API. <a href="/about.html" className="text-indigo-400 hover:underline">About this tool</a>.</p>
+            <style>{`
+                .animate-fade-in {
+                  animation: fadeIn 0.5s ease-in-out;
+                }
+                @keyframes fadeIn {
+                  from { opacity: 0; transform: translateY(-10px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+          </main>
+        </div>
+
+        <footer className="text-center mt-8 text-xs text-[var(--color-text-secondary)]">
+            <p>Powered by Google's Gemini API. <a href="/about.html" className="text-[var(--color-accent)] hover:underline">About this tool</a>.</p>
         </footer>
       </div>
     </div>
