@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { ClueType, GeneratedClue } from './types';
+import { ClueType, GeneratedClue, Preset } from './types';
 import { generateClue, getClueTypeExplanation, getSetterExplanation, getMetadata, getSynonyms } from './services/geminiService';
 import { useHistory } from './hooks/useHistory';
+import { usePresets } from './hooks/usePresets';
 import Header from './components/Header';
 import TextInput from './components/TextInput';
 import SelectInput from './components/SelectInput';
@@ -13,11 +14,14 @@ import { HistoryIcon } from './components/HistoryIcon';
 import ErrorDisplay from './components/ErrorDisplay';
 import SuggestionDisplay from './components/SuggestionDisplay';
 import { InfoIcon } from './components/InfoIcon';
+import PresetManager from './components/PresetManager';
+import Onboarding from './components/Onboarding';
 
 const MAX_ANSWER_LENGTH = 25;
 const MAX_DEFINITION_LENGTH = 80;
 const MAX_THEME_LENGTH = 50;
 const MAX_API_CALLS_PER_MINUTE = 8; // Client-side limit to prevent spamming
+const RATE_LIMIT_WARNING_THRESHOLD = 2; // Show warning when this many calls are left
 
 const App: React.FC = () => {
   const [answer, setAnswer] = useState<string>('');
@@ -36,6 +40,9 @@ const App: React.FC = () => {
   const [isHistoryVisible, setIsHistoryVisible] = useState<boolean>(false);
   const [isInitialising, setIsInitialising] = useState<boolean>(true);
 
+  // Feature: Onboarding
+  const [isOnboardingActive, setIsOnboardingActive] = useState<boolean>(false);
+
 
   // State for synonym suggestions
   const [synonymSuggestions, setSynonymSuggestions] = useState<string[]>([]);
@@ -46,10 +53,50 @@ const App: React.FC = () => {
   
   // State for client-side rate limiting
   const [apiCallTimestamps, setApiCallTimestamps] = useState<number[]>([]);
+  const [rateLimitStatus, setRateLimitStatus] = useState({
+    remaining: MAX_API_CALLS_PER_MINUTE,
+    isApproaching: false,
+  });
+
+  // Feature: Presets
+  const [presets, addPreset, deletePreset] = usePresets();
+  const [selectedPreset, setSelectedPreset] = useState<string>('');
 
 
   const answerSuggestionRef = useRef<HTMLDivElement>(null);
   const definitionSuggestionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Check if the user has completed onboarding before
+    const hasCompleted = localStorage.getItem('hasCompletedOnboarding');
+    if (hasCompleted !== 'true') {
+      setIsOnboardingActive(true);
+    }
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hasCompletedOnboarding', 'true');
+    setIsOnboardingActive(false);
+  };
+
+  // Effect to update the visual rate limit indicator
+  useEffect(() => {
+    const updateStatus = () => {
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+      const recentCalls = apiCallTimestamps.filter(ts => ts > oneMinuteAgo);
+      const remaining = MAX_API_CALLS_PER_MINUTE - recentCalls.length;
+      const isApproaching = remaining <= RATE_LIMIT_WARNING_THRESHOLD && remaining > 0;
+      
+      setRateLimitStatus({ remaining, isApproaching });
+    };
+
+    updateStatus(); // Update immediately
+    const interval = setInterval(updateStatus, 2000); // And periodically check
+
+    return () => clearInterval(interval);
+  }, [apiCallTimestamps]);
+
 
   const checkRateLimit = useCallback(() => {
     const now = Date.now();
@@ -60,7 +107,7 @@ const App: React.FC = () => {
         setError(`You're making requests too quickly. Please wait a moment. (Client limit: ${MAX_API_CALLS_PER_MINUTE}/min)`);
         return false;
     }
-    setApiCallTimestamps([...recentCalls, now]);
+    setApiCallTimestamps(prev => [...prev.filter(ts => ts > oneMinuteAgo), now]);
     return true;
   }, [apiCallTimestamps]);
 
@@ -159,7 +206,16 @@ const App: React.FC = () => {
     setCustomTheme('');
     setSuggestionTarget(null);
     setSynonymSuggestions([]);
+    setSelectedPreset(''); // Reset preset selection
   }, []);
+  
+  const handleApplyPreset = (preset: Preset) => {
+    setSetter(preset.setter);
+    setClueType(preset.clueType);
+    setTheme(preset.theme);
+    setIsToughie(preset.isToughie);
+    setSelectedPreset(preset.name);
+  };
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,10 +299,21 @@ const App: React.FC = () => {
     { value: 'Custom', label: 'Custom...' }
   ];
 
+  const getButtonText = () => {
+    if (isLoading) return <Spinner />;
+    if (isCoolingDown) return 'Cooling down...';
+    if (rateLimitStatus.remaining <= 0) return `Rate limit reached`;
+    if (rateLimitStatus.isApproaching) {
+      return `Generate Clue (${rateLimitStatus.remaining}/${MAX_API_CALLS_PER_MINUTE})`;
+    }
+    return 'Generate Clue';
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+      {isOnboardingActive && <Onboarding onComplete={handleOnboardingComplete} />}
       <div className="max-w-3xl mx-auto">
-        <Header />
+        <Header onHelpClick={() => setIsOnboardingActive(true)} />
 
         <div className="relative mt-10">
           <main className="bg-[var(--color-surface)] rounded-xl shadow-lg p-6 sm:p-10 border border-[var(--color-border)]">
@@ -344,7 +411,7 @@ const App: React.FC = () => {
                       label="Clue Type"
                       id="clueType"
                       value={clueType}
-                      onChange={(e) => setClueType(e.target.value as ClueType)}
+                      onChange={(e) => { setClueType(e.target.value as ClueType); setSelectedPreset(''); }}
                       options={clueTypeOptions}
                       infoText={getClueTypeExplanation(clueType)}
                       getOptionTitle={(val) => getClueTypeExplanation(val as ClueType)}
@@ -354,7 +421,7 @@ const App: React.FC = () => {
                       label="Setter Style"
                       id="setter"
                       value={setter}
-                      onChange={(e) => setSetter(e.target.value)}
+                      onChange={(e) => { setSetter(e.target.value); setSelectedPreset(''); }}
                       options={setterOptions}
                       infoText={getSetterExplanation(setter)}
                       getOptionTitle={getSetterExplanation}
@@ -367,7 +434,7 @@ const App: React.FC = () => {
                         label="Theme (Optional)"
                         id="theme"
                         value={theme}
-                        onChange={(e) => setTheme(e.target.value)}
+                        onChange={(e) => { setTheme(e.target.value); setSelectedPreset(''); }}
                         options={themeOptions}
                         disabled={isLoading}
                         infoText="Optionally, guide the clue's surface reading with a theme."
@@ -406,7 +473,7 @@ const App: React.FC = () => {
                             type="checkbox"
                             id="toughie"
                             checked={isToughie}
-                            onChange={(e) => setIsToughie(e.target.checked)}
+                            onChange={(e) => { setIsToughie(e.target.checked); setSelectedPreset(''); }}
                             disabled={isLoading}
                             className="sr-only peer"
                         />
@@ -414,9 +481,26 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
+                   <div className="pt-2 border-t border-[var(--color-border)]">
+                      <PresetManager
+                        presets={presets}
+                        onApply={handleApplyPreset}
+                        onAdd={addPreset}
+                        onDelete={deletePreset}
+                        currentSettings={{ setter, clueType, theme: theme === 'Custom' ? 'Custom' : theme, isToughie }}
+                        selectedPreset={selectedPreset}
+                        setSelectedPreset={setSelectedPreset}
+                        disabled={isLoading}
+                      />
+                  </div>
+
                   <div className="pt-2">
-                    <Button type="submit" disabled={isLoading || isCoolingDown || !answer.trim() || !definition.trim()}>
-                      {isLoading ? <Spinner /> : isCoolingDown ? 'Cooling down...' : 'Generate Clue'}
+                    <Button
+                      type="submit"
+                      disabled={isLoading || isCoolingDown || !answer.trim() || !definition.trim() || rateLimitStatus.remaining <= 0}
+                      isWarning={rateLimitStatus.isApproaching}
+                    >
+                      {getButtonText()}
                     </Button>
                   </div>
                 </form>

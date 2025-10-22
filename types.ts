@@ -46,3 +46,11 @@ export interface HistoryEntry {
   setter?: string;
   theme?: string;
 }
+
+export interface Preset {
+  name: string;
+  setter: string;
+  clueType: ClueType;
+  theme: string;
+  isToughie: boolean;
+}

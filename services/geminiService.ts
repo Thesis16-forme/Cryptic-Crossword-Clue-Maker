@@ -45,55 +45,62 @@ export const getMetadata = (): Promise<AppMetadata> => {
     return metadataPromise;
 }
 
+// A map of error substrings to user-friendly messages for cleaner handling.
+const ERROR_MAP: { [key: string]: string } = {
+  // API Key issues
+  'api key not valid': "It seems there's an issue with the API key. Please ensure it's configured correctly.",
+  'api_key_not_valid': "It seems there's an issue with the API key. Please ensure it's configured correctly.",
+  'not found': "It seems there's an issue with the API key. Please ensure it's configured correctly.",
+  
+  // Quota issues
+  'quota': "You've reached your usage limit for the API. Please check your account details or try again later.",
+  'resource_exhausted': "You've reached your usage limit for the API. Please check your account details or try again later.",
+  
+  // Rate limiting issues
+  'rate limit': "You're generating clues very quickly! Please wait a moment before trying again.",
+  
+  // Content safety issues
+  'candidate was blocked': "The generated clue was blocked due to safety filters. Please try adjusting your answer or definition.",
+  
+  // Network issues
+  'failed to fetch': "Could not connect to the AI service. Please check your internet connection.",
+  
+  // Server-side issues
+  'server error': "The AI service is experiencing some technical difficulties. Please try again in a few moments.",
+  '500': "The AI service is experiencing some technical difficulties. Please try again in a few moments.",
+  '503': "The AI service is experiencing some technical difficulties. Please try again in a few moments.",
+  'service unavailable': "The AI service is experiencing some technical difficulties. Please try again in a few moments.",
+  
+  // Badly formatted response from AI
+  'unexpected format': "The AI's response was not in the expected format. This might be a temporary issue; please try again.",
+  'invalid response': "The AI's response was not in the expected format. This might be a temporary issue; please try again.",
+  'invalid json': "The AI's response was not in the expected format. This might be a temporary issue; please try again.",
+};
+
 const handleApiError = (error: unknown): Error => {
   console.error("Gemini API Error:", error);
 
-  // Convert the error to a lowercase string for consistent checking
   let errorMessage = '';
   if (error instanceof Error) {
     errorMessage = error.message.toLowerCase();
   } else {
     try {
-      // Handles cases where the error is an object (like the API response)
       errorMessage = JSON.stringify(error).toLowerCase();
     } catch (e) {
-      // Fallback for non-stringifiable types
       errorMessage = String(error).toLowerCase();
     }
   }
-  
-  // API Key issues
-  if (errorMessage.includes("api key not valid") || errorMessage.includes("api_key_not_valid") || errorMessage.includes("not found")) {
-    return new Error("Invalid API Key. Please check your configuration and try again.");
+
+  for (const key in ERROR_MAP) {
+    if (errorMessage.includes(key)) {
+      return new Error(ERROR_MAP[key]);
+    }
   }
-  // Quota issues
-  if (errorMessage.includes("quota") || errorMessage.includes("resource_exhausted")) {
-    return new Error("You have exceeded your API quota. Please check your plan and billing details, or try again later.");
-  }
-  // Rate limiting issues
-  if (errorMessage.includes("rate limit")) {
-    return new Error("You've made too many requests in a short period. Please wait a moment and try again.");
-  }
-  // Content safety issues
-  if (errorMessage.includes("candidate was blocked")) {
-    return new Error("The request was blocked for safety reasons. Please modify your input and try again.");
-  }
-  // Network issues (client-side)
-  if (errorMessage.includes("failed to fetch")) {
-      return new Error("Network error. Please check your internet connection and try again.");
-  }
-  // Server-side issues (5xx errors)
-  if (errorMessage.includes("server error") || errorMessage.includes("500") || errorMessage.includes("503") || errorMessage.includes("service unavailable")) {
-      return new Error("The AI service is currently unavailable. Please try again in a few moments.");
-  }
-  // Badly formatted response from AI
-  if (errorMessage.includes("unexpected format") || errorMessage.includes("invalid response")) {
-      return new Error("The AI returned a response in an unexpected format. Please try again.");
-  }
-  
+
   // Default fallback error for other unhandled cases
   return new Error("An unexpected error occurred with the AI service. Please try again later.");
 };
+
 
 /**
  * Extracts a JSON string from a potential Markdown code block and parses it.
@@ -222,15 +229,11 @@ export const generateClue = async (
 5.  **Output Format**: Respond ONLY with a single, valid JSON object with a single key: "clue" (the final clue text). Do not include any other text, keys, or markdown formatting.
 
 **STYLE BENCHMARKS:**
-Study these examples of superb clues from master setters. Aim for this level of elegance, wit, and clever construction:
-- Easy on Prince Andrew? (2,5) — NO SWEAT
+Study these examples of superb clues. Aim for this level of elegance and wit:
 - 1 getting Tesla — bet he crashes! (3,7) — THE BEATLES
-- Spooner gets B, D#, F# permutations from these instruments (9) — KEYBOARDS
 - Senior officers kiss cheek (5,4) — BRASS NECK
-- Create an impression in France and Switzerland (4) — ETCH
 - Blue bottle getting passed around (10) — DISPIRITED
 - Pet butterfly? (6) — STROKE
-- Fen country wife has dental treatment? (7) — WETLAND
 
 **USER REQUEST:**
 - Answer: "${answer}"
@@ -244,7 +247,7 @@ Now, generate the clue.`;
 
   try {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-2.5-flash',
         contents: prompt
     });
 
