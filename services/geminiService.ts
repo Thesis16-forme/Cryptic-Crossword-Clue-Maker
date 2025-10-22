@@ -95,6 +95,31 @@ const handleApiError = (error: unknown): Error => {
   return new Error("An unexpected error occurred with the AI service. Please try again later.");
 };
 
+/**
+ * Extracts a JSON string from a potential Markdown code block and parses it.
+ * @param text The raw text response from the API.
+ * @returns The parsed JSON object.
+ */
+const extractAndParseJson = <T>(text: string): T => {
+    let jsonString = text.trim();
+
+    // Regex to find content inside a JSON markdown block (e.g., ```json ... ```)
+    const markdownBlockRegex = /```(?:json\s*)?([\s\S]*?)```/;
+    const match = jsonString.match(markdownBlockRegex);
+
+    if (match && match[1]) {
+        jsonString = match[1];
+    }
+
+    try {
+        return JSON.parse(jsonString) as T;
+    } catch (parseError) {
+        console.error("Failed to parse JSON:", jsonString, parseError);
+        // Throw a specific error to be caught and handled by handleApiError
+        throw new Error("The AI returned a response in an unexpected format (invalid JSON).");
+    }
+};
+
 export const getSetterExplanation = (setter: string): string => {
   switch (setter) {
     case "Anax":
@@ -126,125 +151,53 @@ export const getSetterExplanation = (setter: string): string => {
     case "Rufus":
       return "A master of the gentle cryptic, perfect for beginners. His signature style was a heavy reliance on witty cryptic definitions and double definitions, with less emphasis on complex, multi-part wordplay. The goal is fun and a satisfying 'aha!' moment, making his puzzles an ideal entry point.";
     case "Shed":
-      return "Shares a similar humorous and inventive style with Paul. His clues are witty and enjoyable, with excellent surface readings. Slightly less prone to overt cheekiness than Paul but delivers an equally satisfying and fun solving experience, often with a slightly more rustic or down-to-earth feel.";
+      return "Shares a similar humorous and inventive style with Paul. His clues are known for their wit and clever misdirection, often with a slightly gentler touch than Paul's more outrageous offerings. A fun and rewarding solve.";
     case "Torquemada":
-      return "One of the earliest and most influential setters, known for puzzles of legendary difficulty. His clues were often wilfully obscure and didn't always follow the strict rules of modern cryptics, frequently involving literary quotations. Selecting his style will produce very challenging and old-fashioned clues.";
+      return "The legendary and notoriously difficult setter for The Saturday Review. Torquemada is famous for inventing the modern cryptic crossword, featuring incredibly complex, literary, and often punning clues. His puzzles were exercises in lateral thinking and deep knowledge, setting the bar for difficulty.";
     case "Vlad":
-       return "As his pseudonym 'The Impaler' suggests, Vlad's puzzles can be tough. He is known for his dark wit, clever misdirection, and intricate wordplay. His clues often have a slightly edgy or political feel, and he is a master of the misleading 'lift-and-separate' technique. Demands careful, precise solving.";
+      return "Also known as 'The Impaler', Vlad is known for his tough, spiky, and often politically charged puzzles. His clues can be mischievous and difficult, featuring complex wordplay and challenging vocabulary, often with a satirical bite. An expert-level challenge.";
     case "Ximenes":
-      return "The father of modern cryptic crossword rules ('Ximenean principles'). His style is defined by its absolute fairness, grammatical precision, and logical rigour. Expect perfectly formed wordplay, no ambiguity, and a strict adherence to the rules. Elegant but very challenging due to its exactness. The benchmark for all 'fair play' setters.";
+      return "The influential successor to Torquemada, who set the modern standards for fair play in cryptic clues. Ximenes's style is the epitome of precision, logic, and fairness, where every part of the clue has a purpose. His puzzles are difficult but scrupulously constructed, forming the basis of the 'Ximenean' school of setting.";
     default:
-      return "Select a setter to see their stylistic description.";
+      return "A setter with a distinct and unique style.";
   }
 };
 
 export const getClueTypeExplanation = (clueType: ClueType): string => {
   switch (clueType) {
-    case ClueType.ANY:
-      return "Let the AI choose! Selects a random, suitable clue type for your answer and definition.";
-    case ClueType.ANAGRAM:
-      return "An anagram. The clue must contain a jumbled version of the answer letters (fodder) and an anagram indicator. Common indicators are words suggesting change or chaos: 'jumbled', 'confused', 'damaged', 'novel', 'wild', 'shredded', 'mixed-up', 'out', 'off', 'crazy'.";
-    case ClueType.CHARADE:
-      return "A charade (word sum). The answer is formed by combining shorter words in sequence. The clue must define each part separately. For example, to get CARPET (a floor covering), the clue would combine a definition for 'CAR' (vehicle) and 'PET' (animal).";
-    case ClueType.CONTAINER:
-      return "A container. One word is placed inside another to form the answer. It needs an indicator for containment (e.g., 'swallows', 'in', 'around', 'clutching') and definitions for both words. For example, to form HEAT, a clue may put 'E' (drugs) inside 'HAT' (a head covering), using an indicator like 'found in'.";
-    case ClueType.REVERSAL:
-      return "A reversal. The answer is another word spelled backward. It requires a reversal indicator (e.g., 'sent back', 'reflects', 'going west', 'returns', 'receding', 'turning up' for down clues) and a definition of the reversed word. For example, POOL reversed becomes LOOP.";
-    case ClueType.HOMOPHONE:
-      return "A homophone. The answer sounds like another word or phrase. It needs a sound indicator (e.g., 'spoken', 'on the radio', 'we hear', 'reportedly', 'to the audience') and definitions for both the answer and the word it sounds like. For example, KNIGHT sounds like NIGHT.";
-    case ClueType.DOUBLE_DEFINITION:
-      return "A double definition. The clue consists of two different, distinct dictionary definitions for the same answer word, with no extra wordplay. For example, for MATCH: 'A competitive game' and 'A small stick for starting a fire'.";
-    case ClueType.DELETION:
-        return "A deletion. A letter or letters are removed from a word to form the answer. Indicators specify the removal: 'headless' (first letter removed, e.g., START -> TART), 'endless' or 'unfinished' (last letter removed), or 'heartless' (middle letter/s removed).";
-    case ClueType.PALINDROME:
-        return "A palindrome. The answer reads the same forwards and backwards. The clue often includes an indicator suggesting symmetry like 'symmetrical', 'going both ways', or 'reflecting'. Examples include LEVEL and RACECAR.";
-    case ClueType.HIDDEN_WORD:
-        return "A hidden word (or 'hiddens'). The answer is concealed directly within a phrase in the clue. An indicator like 'part of', 'some', 'concealed by', or 'within' points it out. For example, the answer TEN is hidden in 'paTENts'.";
-    case ClueType.LITERAL:
-        return "A literal or '&lit.' clue. The entire clue is a single entity that works as both a definition for the answer and the wordplay to construct it. The whole clue must literally describe the answer. Example for EGG: 'E.g., origin of goose!' where 'e.g.' gives EG and 'origin of goose' gives G, and the whole clue defines an egg.";
-    case ClueType.COMPOSITE:
-        return "A composite clue. This clue combines two or more different wordplay types (like an anagram and a container) to arrive at the answer. This is often used for longer answers. The clue must clearly delineate the different wordplay steps. Example for HONORABLE: 'Illustrious baron returns in pit' -> NORAB (baron reversed) inside HOLE (pit).";
-    case ClueType.SPOONERISM:
-        return "A spoonerism. The initial sounds of two or more words are swapped. The clue defines both the resulting phrase (the answer) and the original words. It often includes an indicator like 'the Reverend says' (after Rev. William Spooner) or similar phrases suggesting a verbal mix-up. For example, for the answer BELTED MUTTER, the clue might point towards the phrase 'melted butter'.";
-    case ClueType.CRYPTIC_DEFINITION:
-        return "A cryptic definition. The entire clue is a witty, misleading, or punning definition of the answer. There is no separate wordplay part; the definition itself is the cryptic puzzle. Often ends with a question mark. For example, for the answer ROW: 'A telling-off on the water?'";
-    case ClueType.INITIALISM:
-        return "An initialism (or acrostic). The answer is formed by taking the first letters of words in the clue. It requires an indicator such as 'at first', 'initially', 'starts to', or 'in the beginning'. For example, for the answer GEAR: 'Starts to get every answer right'.";
-    case ClueType.ALTERNATION:
-        return "An alternation. The answer is formed by taking letters alternately from two or more other words. The clue will contain indicators like 'alternately', 'regularly', or 'every other'. For example, for SCARE, the clue might define SAC and RED and then say 'take every other letter'.";
-    case ClueType.ODD_EVEN_LETTERS:
-        return "Odd/Even letters. The answer is formed by taking either the odd-positioned or even-positioned letters from a word in the clue. Indicators include 'oddly', 'evenly', 'regularly ignoring', etc. For example, for ATE, the clue might use the word 'gATEway' and the indicator 'oddly'.";
-    case ClueType.SOUND_CHANGE:
-        return "A sound change. The answer is formed by changing a letter or sound within a word to another. The clue will define the original word and indicate the change, e.g., 'change X to Y'. For example, for WANE, the clue might define WINE and instruct 'change the sound of I to A'.";
-    case ClueType.REBUS:
-        return "A 'meta' clue where the answer itself is a piece of wordplay. The clue has a definition for the answer, plus wordplay that describes the *result* of the answer's instructions. For example, for the answer BROKEN HEART (a term for 'despair'), the clue's wordplay might be 'Earth', because 'heart' when 'broken' (anagrammed) becomes 'earth'.";
-    case ClueType.BACKSOLVER:
-        return "A backsolver (or indirect) clue. The answer is often an obscure word or proper noun that is difficult to solve directly. The clue provides a cryptic hint, and the solver is expected to use the letters from intersecting clues ('checking letters') to determine the final answer. This type is rare and considered unfair by some purists.";
-    case ClueType.ANTHROPOPHAGISM:
-        return "A very rare 'man-eats-word' clue. This is a specific type of container where a word for a person (e.g., 'MAN', 'SON', 'HE') 'eats' (contains) another word to form the answer. The indicator is often related to cannibalism. For example, to get 'REHEARSAL', the clue might have 'HE' eating 'REARS' (backs).";
-    case ClueType.LETTER_BANK:
-        return "A letter bank. The clue contains a word or phrase from which all the letters of the answer can be taken, but not necessarily in order or contiguously (unlike a hidden word or anagram). It requires an indicator like 'letters from', 'using characters in', etc. For example, for ANSWER from 'WAREHOUSEMAN', the clue would indicate to pick letters from the longer word.";
-    case ClueType.LETTER_PAIR:
-        return "A letter pair clue. The answer is formed by taking pairs of letters from words in the clue. Indicators might specify 'first couple', 'final pair', 'central duo', etc. For example, for CART, the clue might define 'CARthorse' and use an indicator like 'opening couple'.";
-    case ClueType.ACRONYM:
-      return "An acronym. Similar to an initialism, but the answer forms a pronounceable word (e.g., RADAR, NATO). The clue takes the first letters from a phrase, often indicated by words like 'initially' or 'at first'. The clue must define the acronym.";
-    case ClueType.BACKRONYM:
-      return "A backronym. A very creative and often humorous clue type where the answer word is treated as if it were an acronym, and the clue provides the phrase it supposedly stands for. For example, for the answer 'FEAR', the clue might be 'Forget everything and run!'.";
-    case ClueType.ANAGRAM_INDICATOR:
-      return "A special request for generating examples of indicator words. Anagram indicators (e.g., 'wild', 'damaged', 'novel', 'mixed-up') are used in clues to signal that letters should be rearranged. Note: This does not generate a full crossword clue.";
-    case ClueType.REVERSAL_INDICATOR:
-      return "A special request for generating examples of indicator words. Reversal indicators (e.g., 'back', 'returns', 'reflects', 'going west') are used in clues to signal that a word should be spelled backwards. Note: This does not generate a full crossword clue.";
-    case ClueType.HIDDEN_INDICATOR:
-      return "A special request for generating examples of indicator words. Hidden indicators (e.g., 'some', 'part of', 'in', 'within') are used in clues to signal that the answer is concealed inside a phrase. Note: This does not generate a full crossword clue.";
-    case ClueType.CONTAINER_INDICATOR:
-      return "A special request for generating examples of indicator words. Container indicators (e.g., 'swallows', 'around', 'holds', 'outside') are used in clues to signal that one word should be placed inside another. Note: This does not generate a full crossword clue.";
-    default:
-      return "A standard cryptic clue.";
+    case ClueType.ANY: return "Let the AI choose the most suitable clue type for the answer.";
+    case ClueType.ANAGRAM: return "The answer is an anagram (rearrangement) of letters from other words in the clue.";
+    case ClueType.CHARADE: return "The answer is built by combining smaller words or abbreviations (e.g., CAR + PET = CARPET).";
+    case ClueType.CONTAINER: return "The answer is formed by placing one word inside another (e.g., BRAIN from B(RA)IN).";
+    case ClueType.REVERSAL: return "The answer is a word spelled backwards, often indicated by directional words like 'up' or 'returning'.";
+    case ClueType.HOMOPHONE: return "The answer sounds like another word or phrase, indicated by words like 'we hear' or 'reportedly'.";
+    case ClueType.DOUBLE_DEFINITION: return "The clue provides two different, distinct definitions for the same answer.";
+    case ClueType.DELETION: return "The answer is formed by removing letters from a word (e.g., 'endless' or 'heartless').";
+    case ClueType.HIDDEN_WORD: return "The answer is hidden consecutively within the letters of the clue itself.";
+    case ClueType.SPOONERISM: return "The initial sounds of two words are swapped to create a new phrase that clues the answer.";
+    case ClueType.CRYPTIC_DEFINITION: return "A purely witty or misleading clue where the whole phrase is a metaphorical definition of the answer.";
+    default: return "A specific type of cryptic wordplay.";
   }
 };
 
 export const getSynonyms = async (text: string): Promise<string[]> => {
-    if (!text || text.trim().length === 0) {
-        return [];
-    }
-    
-    const prompt = `
-        You are a thesaurus expert. Your task is to provide a list of synonyms for a given word or phrase.
-        
-        **Instructions:**
-        1. Analyze the following text: "${text}"
-        2. Generate a list of up to 10 relevant synonyms.
-        3. The synonyms should be single words or short phrases.
-        4. Your response MUST be ONLY a valid JSON array of strings. For example: ["synonym1", "synonym2", "synonym3"].
-        5. If you cannot find any synonyms, return an empty JSON array: [].
-        6. Do not include the original word in the list.
-        7. Do not add any preamble, explanation, or markdown backticks.
-    `;
-
     try {
+        const prompt = `You are a thesaurus. Provide a short list of useful, single-word or short-phrase synonyms for the given word/phrase. Prioritize common and interesting alternatives. Return the output as a single, flat JSON array of strings.
+
+Word/Phrase: "${text}"`;
+        
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
         });
 
-        let responseText = response.text.trim();
-        const jsonRegex = /```(json)?\s*([\s\S]*?)\s*```/;
-        const match = responseText.match(jsonRegex);
-        if (match && match[2]) {
-            responseText = match[2].trim();
+        const synonyms = extractAndParseJson<string[]>(response.text);
+
+        if (!Array.isArray(synonyms) || !synonyms.every(s => typeof s === 'string')) {
+            throw new Error("AI returned data in an invalid format.");
         }
 
-        try {
-            const parsedResponse: string[] = JSON.parse(responseText);
-            if (!Array.isArray(parsedResponse)) {
-                console.error("AI response for synonyms was not an array:", parsedResponse);
-                throw new Error("The AI returned an invalid response for synonyms.");
-            }
-            return parsedResponse;
-        } catch (e) {
-            console.error("Failed to parse synonyms response as JSON:", responseText, e);
-            throw new Error("The AI returned a response for synonyms in an unexpected format.");
-        }
+        return synonyms.slice(0, 15); // Limit to 15 suggestions
     } catch (error) {
         throw handleApiError(error);
     }
@@ -252,96 +205,60 @@ export const getSynonyms = async (text: string): Promise<string[]> => {
 
 
 export const generateClue = async (
-    answer: string,
-    definition: string,
-    clueType: ClueType,
-    isToughie: boolean,
-    setter: string,
-    theme: string,
+  answer: string,
+  definition: string,
+  clueType: ClueType,
+  isToughie: boolean,
+  setter: string,
+  theme: string
 ): Promise<GeneratedClue> => {
-  const toughieInstruction = isToughie 
-    ? `
-**Difficulty:** This is a 'Toughie' clue. Increase the difficulty significantly. Use more obscure vocabulary, subtler indicators, and more complex or layered wordplay. The surface reading should be exceptionally misleading.`
-    : `
-**Difficulty:** Standard difficulty. The clue should be challenging but fair for an average solver.`;
+  const prompt = `You are an expert cryptic crossword setter, a master of wit, misdirection, and wordplay. Your task is to generate a single, high-quality cryptic crossword clue based on the user's request.
 
-  const themeInstruction = (theme && theme.trim() && theme.toLowerCase() !== 'none')
-    ? `
-**Thematic Element:**
-You MUST incorporate the following theme into the clue's surface reading or wordplay. The connection can be subtle, but the clue should feel relevant to the topic. For example, if the theme is 'Science', the surface reading could sound like a lab note, or an indicator word could be a scientific term.
-- **Theme:** "${theme}"`
-    : '';
+**INSTRUCTIONS:**
+1.  **Emulate the Setter**: Adopt the persona and style of the specified setter.
+2.  **Use the Clue Type**: Strictly adhere to the requested clue type. If 'ANY' is specified, choose the most elegant and clever type for the given answer.
+3.  **Integrate the Theme**: If a theme is provided, subtly weave it into the 'surface reading' of the clue. The surface reading should be a natural, grammatical, and often misleading sentence.
+4.  **Difficulty**: Adjust the difficulty based on the 'Toughie' setting and the setter's reputation.
+5.  **Output Format**: Respond ONLY with a single, valid JSON object with a single key: "clue" (the final clue text). Do not include any other text, keys, or markdown formatting.
 
-  const setterStyleExplanation = getSetterExplanation(setter);
+**STYLE BENCHMARKS:**
+Study these examples of superb clues from master setters. Aim for this level of elegance, wit, and clever construction:
+- Easy on Prince Andrew? (2,5) — NO SWEAT
+- 1 getting Tesla — bet he crashes! (3,7) — THE BEATLES
+- Spooner gets B, D#, F# permutations from these instruments (9) — KEYBOARDS
+- Senior officers kiss cheek (5,4) — BRASS NECK
+- Create an impression in France and Switzerland (4) — ETCH
+- Blue bottle getting passed around (10) — DISPIRITED
+- Pet butterfly? (6) — STROKE
+- Fen country wife has dental treatment? (7) — WETLAND
 
-  const prompt = `
-    You are an expert cryptic crossword setter. Your task is to generate one concise, elegant, and witty cryptic crossword clue.
+**USER REQUEST:**
+- Answer: "${answer}"
+- Definition: "${definition}"
+- Clue Type: "${clueType}"
+- Setter Style: "${setter}"
+- Theme: "${theme === 'None' || !theme ? 'No specific theme' : theme}"
+- Toughie Mode: ${isToughie ? 'Yes, make it very difficult.' : 'No, standard difficulty.'}
 
-    **Style and Persona:**
-    Adopt the persona of the famous cryptic crossword setter: **${setter}**.
-    Emulate this setter's specific style: "${setterStyleExplanation}"
-    You MUST strictly adhere to this style in your response.
-
-    ${themeInstruction}
-
-    **Clue Complexity:**
-    Vary the complexity based on the chosen wordplay type. For instance, a DOUBLE_DEFINITION should be simple and elegant, while a COMPOSITE clue should naturally be more intricate and layered.
-    ${toughieInstruction}
-
-    **Wordplay Sophistication:**
-    - **Prioritize Creativity:** Strive for clever, sophisticated wordplay. Avoid using the most common or obvious synonyms for components of the answer. Instead, seek out more creative, less direct, but still fair, word associations to make the clue more rewarding and create a satisfying "aha!" moment.
-
-    **Rules for the Clue:**
-    1.  The clue must have two parts: a precise, dictionary-style definition and a wordplay part.
-    2.  The wordplay must fairly and logically lead to the answer.
-    3.  The clue as a whole (the 'surface reading') must be a grammatically correct and natural-sounding phrase.
-    4.  The final clue must NOT contain the answer word itself.
-    5.  Do not add the answer's length in brackets at the end. I will do that.
-
-    **Clue Details:**
-    -   **Answer:** "${answer.toUpperCase()}"
-    -   **Definition to use:** "${definition}"
-    -   **Required Wordplay Type:** ${clueType}
-    -   **Explanation of Wordplay:** ${getClueTypeExplanation(clueType)}
-    
-    **Your Response:**
-    Provide ONLY a valid JSON object in the following format. Do not add any preamble, explanation, or markdown backticks.
-    {
-      "clue": "The final cryptic clue text.",
-      "setter": "${setter}",
-      "answer": "${answer}"
-    }
-  `;
+Now, generate the clue.`;
 
   try {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
+        model: 'gemini-2.5-pro',
+        contents: prompt
     });
-    
-    let text = response.text.trim();
-    if (!text) {
-        throw new Error("The AI returned an empty response. Please try a different input.");
+
+    const result = extractAndParseJson<{ clue: string }>(response.text);
+
+    if (typeof result.clue !== 'string' || !result.clue) {
+      throw new Error("AI response did not contain a valid clue.");
     }
 
-    // The model sometimes wraps the JSON in markdown backticks. Let's remove them.
-    const jsonRegex = /```(json)?\s*([\s\S]*?)\s*```/;
-    const match = text.match(jsonRegex);
-    if (match && match[2]) {
-        text = match[2].trim();
-    }
-
-    try {
-        const parsedResponse: GeneratedClue = JSON.parse(text);
-        if (!parsedResponse.clue || !parsedResponse.setter || !parsedResponse.answer) {
-            throw new Error("AI response is missing required fields (invalid response).");
-        }
-        return parsedResponse;
-    } catch (e) {
-        console.error("Failed to parse AI response as JSON:", text, e);
-        throw new Error("The AI returned a response in an unexpected format.");
-    }
-
+    return {
+      clue: result.clue,
+      setter, // Return the requested setter style
+      answer
+    };
   } catch (error) {
     throw handleApiError(error);
   }
